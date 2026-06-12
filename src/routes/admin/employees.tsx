@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { Minus, Plus, Shield, ShieldOff, X } from "lucide-react";
-import { getEmployees, setPlBalance, setRole } from "@/lib/api/admin.functions";
+import { Plus, X, UserPlus } from "lucide-react";
+import { getEmployees } from "@/lib/api/admin.functions";
 import { toast } from "sonner";
 import { PunchEditor } from "./-punch-editor";
 
@@ -12,39 +12,20 @@ export const Route = createFileRoute("/admin/employees")({
   component: EmployeesPage,
 });
 
-const statusColor = {
-  present: "text-green-700 bg-green-50",
-  done: "text-blue-600 bg-blue-50",
-  absent: "text-muted-foreground bg-muted",
-} as const;
+// Placeholder teams — swap for the real list when decided.
+const TEAMS = ["Engineering", "Design", "Sales", "Operations", "Support"];
 
 function EmployeesPage() {
   const qc = useQueryClient();
   const fetchEmployees = useServerFn(getEmployees);
-  const balanceFn = useServerFn(setPlBalance);
-  const roleFn = useServerFn(setRole);
-  const { data } = useQuery({ queryKey: ["admin-employees"], queryFn: () => fetchEmployees() });
+  const { data } = useQuery({
+    queryKey: ["admin-employees"],
+    queryFn: () => fetchEmployees(),
+  });
   const [editPunch, setEditPunch] = useState<{ id: string; name: string } | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["admin-employees"] });
-
-  const balanceMut = useMutation({
-    mutationFn: (v: { userId: string; balance: number }) => balanceFn({ data: v }),
-    onSuccess: () => {
-      invalidate();
-      toast.success("Balance updated");
-    },
-    onError: (e: any) => toast.error(e.message ?? "Failed"),
-  });
-
-  const roleMut = useMutation({
-    mutationFn: (v: { userId: string; role: "admin" | "employee" }) => roleFn({ data: v }),
-    onSuccess: () => {
-      invalidate();
-      toast.success("Role updated");
-    },
-    onError: (e: any) => toast.error(e.message ?? "Failed"),
-  });
 
   const employees = data?.employees ?? [];
 
@@ -55,14 +36,20 @@ function EmployeesPage() {
           <h1 className="font-display text-3xl font-extrabold">Employees</h1>
           <p className="text-sm text-muted-foreground mt-1">{employees.length} people</p>
         </div>
+        <button
+          onClick={() => setAddOpen(true)}
+          className="h-11 px-4 rounded-xl bg-foreground text-background text-sm font-bold flex items-center gap-2"
+        >
+          <UserPlus className="size-4" />
+          Add employee
+        </button>
       </div>
 
       <div className="bg-white border border-border rounded-2xl overflow-hidden">
-        <div className="hidden md:grid grid-cols-[1fr_120px_160px_140px] gap-4 px-5 py-3 border-b border-border text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+        <div className="hidden md:grid grid-cols-[1fr_1fr_1fr] gap-4 px-5 py-3 border-b border-border text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
           <span>Name</span>
-          <span>Today</span>
-          <span>PL balance</span>
-          <span>Role</span>
+          <span>Designation</span>
+          <span>Team</span>
         </div>
 
         {employees.length === 0 && (
@@ -72,7 +59,7 @@ function EmployeesPage() {
         {employees.map((e) => (
           <div
             key={e.id}
-            className="grid md:grid-cols-[1fr_120px_160px_140px] gap-3 md:gap-4 px-5 py-4 border-b border-border last:border-0 items-center"
+            className="grid md:grid-cols-[1fr_1fr_1fr] gap-3 md:gap-4 px-5 py-4 border-b border-border last:border-0 items-center"
           >
             <div className="min-w-0">
               <button
@@ -83,48 +70,8 @@ function EmployeesPage() {
                 {e.full_name || "Unnamed"}
               </button>
             </div>
-
-            <div>
-              <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${statusColor[e.todayStatus as keyof typeof statusColor]}`}>
-                {e.todayStatus}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => balanceMut.mutate({ userId: e.id, balance: e.pl_balance - 0.5 })}
-                disabled={balanceMut.isPending || e.pl_balance <= 0}
-                className="size-7 rounded-lg border border-border flex items-center justify-center disabled:opacity-40 hover:bg-muted"
-              >
-                <Minus className="size-3.5" />
-              </button>
-              <span className="w-12 text-center font-mono font-bold text-sm tabular-nums">{e.pl_balance.toFixed(1)}</span>
-              <button
-                onClick={() => balanceMut.mutate({ userId: e.id, balance: e.pl_balance + 0.5 })}
-                disabled={balanceMut.isPending}
-                className="size-7 rounded-lg border border-border flex items-center justify-center disabled:opacity-40 hover:bg-muted"
-              >
-                <Plus className="size-3.5" />
-              </button>
-            </div>
-
-            <div>
-              <button
-                onClick={() =>
-                  roleMut.mutate({ userId: e.id, role: e.role === "admin" ? "employee" : "admin" })
-                }
-                disabled={roleMut.isPending}
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-colors disabled:opacity-50 ${
-                  e.role === "admin"
-                    ? "bg-primary/10 text-primary border-primary/20"
-                    : "border-border text-muted-foreground hover:bg-muted"
-                }`}
-                title={e.role === "admin" ? "Demote to employee" : "Promote to admin"}
-              >
-                {e.role === "admin" ? <Shield className="size-3.5" /> : <ShieldOff className="size-3.5" />}
-                {e.role}
-              </button>
-            </div>
+            <div className="text-sm text-muted-foreground">—</div>
+            <div className="text-sm text-muted-foreground">—</div>
           </div>
         ))}
       </div>
@@ -134,7 +81,78 @@ function EmployeesPage() {
           <PunchEditor userId={editPunch.id} onSaved={invalidate} />
         </Modal>
       )}
+
+      {addOpen && (
+        <Modal title="Add employee" onClose={() => setAddOpen(false)}>
+          <AddEmployeeForm onClose={() => setAddOpen(false)} />
+        </Modal>
+      )}
     </div>
+  );
+}
+
+function AddEmployeeForm({ onClose }: { onClose: () => void }) {
+  const [name, setName] = useState("");
+  const [designation, setDesignation] = useState("");
+  const [team, setTeam] = useState(TEAMS[0]);
+
+  function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim()) {
+      toast.error("Name is required");
+      return;
+    }
+    // No backend wired yet — capture the values and close.
+    toast.success(`Saved ${name.trim()} (${designation || "—"}, ${team})`);
+    onClose();
+  }
+
+  return (
+    <form onSubmit={onSubmit} className="space-y-4">
+      <label className="block">
+        <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Name</span>
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Full name"
+          autoFocus
+          className="mt-1 w-full h-12 px-3 rounded-2xl bg-white border border-border focus:outline-none focus:border-primary transition"
+        />
+      </label>
+
+      <label className="block">
+        <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Designation</span>
+        <input
+          value={designation}
+          onChange={(e) => setDesignation(e.target.value)}
+          placeholder="e.g. Senior Engineer"
+          className="mt-1 w-full h-12 px-3 rounded-2xl bg-white border border-border focus:outline-none focus:border-primary transition"
+        />
+      </label>
+
+      <label className="block">
+        <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Team</span>
+        <select
+          value={team}
+          onChange={(e) => setTeam(e.target.value)}
+          className="mt-1 w-full h-12 px-3 rounded-2xl bg-white border border-border focus:outline-none focus:border-primary transition"
+        >
+          {TEAMS.map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <button
+        type="submit"
+        className="w-full h-12 rounded-2xl bg-foreground text-background font-semibold flex items-center justify-center gap-2"
+      >
+        <Plus className="size-4" />
+        Add employee
+      </button>
+    </form>
   );
 }
 

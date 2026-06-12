@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { decideLeave, getAdminOps } from "@/lib/api/leave.functions";
+import { DEV_BYPASS } from "@/lib/dev-mock";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/leave")({
@@ -13,10 +14,18 @@ function AdminLeavePage() {
   const qc = useQueryClient();
   const fetch = useServerFn(getAdminOps);
   const decide = useServerFn(decideLeave);
-  const { data } = useQuery({ queryKey: ["admin-ops"], queryFn: () => fetch(), retry: false });
+  const { data } = useQuery({
+    queryKey: ["admin-ops"],
+    queryFn: () =>
+      DEV_BYPASS
+        ? Promise.resolve({ counts: { present: 0, onLeave: 0, total: 0 }, pending: [], roster: [] })
+        : fetch(),
+    retry: false,
+  });
 
   const mut = useMutation({
-    mutationFn: (v: { id: string; approve: boolean }) => decide({ data: v }),
+    mutationFn: (v: { id: string; approve: boolean }) =>
+      DEV_BYPASS ? Promise.resolve({ ok: true }) : decide({ data: v }),
     onSuccess: (_d, v) => {
       qc.invalidateQueries({ queryKey: ["admin-ops"] });
       toast.success(v.approve ? "Approved" : "Declined");

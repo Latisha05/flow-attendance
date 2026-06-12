@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FileText } from "lucide-react";
 import { getMyReports, submitReport } from "@/lib/api/work-reports.functions";
 import { toast } from "sonner";
@@ -25,6 +25,14 @@ function ReportPage() {
 
   const [content, setContent] = useState("");
   const [hours, setHours] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const autoResize = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, []);
 
   // Hydrate the editor with today's saved report when it loads.
   useEffect(() => {
@@ -33,6 +41,9 @@ function ReportPage() {
       setHours(String(data.today.hours ?? ""));
     }
   }, [data?.today?.id]);
+
+  // Auto-resize when content changes (including hydration).
+  useEffect(() => { autoResize(); }, [content, autoResize]);
 
   const locked = data?.today?.status === "reviewed";
 
@@ -73,13 +84,14 @@ function ReportPage() {
           className="space-y-3"
         >
           <textarea
+            ref={textareaRef}
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={(e) => { setContent(e.target.value); autoResize(); }}
             disabled={locked}
             rows={5}
             maxLength={4000}
             placeholder="What did you work on today?"
-            className="w-full px-3 py-2.5 rounded-2xl bg-muted/50 border border-border resize-none text-sm disabled:opacity-60"
+            className="w-full px-3 py-2.5 rounded-2xl bg-muted/50 border border-border resize-none text-sm disabled:opacity-60 overflow-hidden"
           />
 
           <motion.button

@@ -1,13 +1,14 @@
 import { createFileRoute, Outlet, redirect, useLocation, Link } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { Home, Calendar, Users, User, FileText } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
+    if (!isSupabaseConfigured) throw redirect({ to: "/auth" });
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) throw redirect({ to: "/auth" });
     return { user: data.user };

@@ -1,11 +1,15 @@
 import { createFileRoute, Outlet, redirect, Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { Users, FileText, CalendarOff, Clock, LogOut, ArrowLeft } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { Home, Users, FileText, CalendarOff, Clock, LogOut, ArrowLeft } from "lucide-react";
+import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
+import { DEV_BYPASS } from "@/lib/dev-mock";
 import { Toaster } from "@/components/ui/sonner";
 
 export const Route = createFileRoute("/admin")({
   ssr: false,
   beforeLoad: async () => {
+    // Dev-only: with no backend, let the panel through so the UI can be reviewed.
+    if (DEV_BYPASS) return { user: { id: "dev-admin" } as any };
+    if (!isSupabaseConfigured) throw redirect({ to: "/auth" });
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) throw redirect({ to: "/auth" });
     const { data: roles } = await supabase
@@ -20,6 +24,7 @@ export const Route = createFileRoute("/admin")({
 });
 
 const nav = [
+  { to: "/admin/home", label: "Home", icon: Home },
   { to: "/admin/employees", label: "Employees", icon: Users },
   { to: "/admin/reports", label: "Work reports", icon: FileText },
   { to: "/admin/leave", label: "Leave", icon: CalendarOff },
@@ -42,8 +47,8 @@ function AdminLayout() {
       {/* Sidebar */}
       <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-border bg-white">
         <div className="px-6 py-6 border-b border-border">
-          <p className="font-display text-xl font-extrabold tracking-tight">Punch Admin</p>
-          <p className="text-[11px] text-muted-foreground font-medium mt-0.5">Operations console</p>
+          <p className="font-display text-xl font-extrabold tracking-tight">FlowAttendance</p>
+          <p className="text-[11px] text-muted-foreground font-medium mt-0.5">Admin Dashboard</p>
         </div>
         <nav className="flex-1 p-3 space-y-1">
           {nav.map((n) => {

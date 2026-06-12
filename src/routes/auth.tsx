@@ -1,7 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
+import { DEV_BYPASS } from "@/lib/dev-mock";
+import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -19,14 +21,21 @@ function AuthPage() {
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!isSupabaseConfigured) return;
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) navigate({ to: "/" });
     });
   }, [navigate]);
 
+  const onSubmitGuarded = !isSupabaseConfigured;
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
+    if (onSubmitGuarded) {
+      setErr("Backend not configured — set Supabase credentials in .env to sign in.");
+      return;
+    }
     setLoading(true);
     try {
       if (mode === "signup") {
@@ -111,6 +120,22 @@ function AuthPage() {
         >
           {mode === "signin" ? "New here? Create an account" : "Already have an account? Sign in"}
         </button>
+
+        {DEV_BYPASS && (
+          <div className="mt-8 pt-6 border-t border-dashed border-border space-y-2">
+            <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider text-center">
+              Dev preview · no backend
+            </p>
+            <div className="flex gap-2">
+              <Link
+                to="/admin"
+                className="flex-1 h-11 rounded-xl bg-primary/10 text-primary font-bold text-sm flex items-center justify-center"
+              >
+                Open Admin panel
+              </Link>
+            </div>
+          </div>
+        )}
       </motion.div>
     </div>
   );

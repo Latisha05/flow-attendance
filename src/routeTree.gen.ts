@@ -16,6 +16,7 @@ import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AdminReportsRouteImport } from './routes/admin/reports'
 import { Route as AdminLeaveRouteImport } from './routes/admin/leave'
+import { Route as AdminHomeRouteImport } from './routes/admin/home'
 import { Route as AdminEmployeesRouteImport } from './routes/admin/employees'
 import { Route as AdminAttendanceRouteImport } from './routes/admin/attendance'
 import { Route as AuthenticatedTeamRouteImport } from './routes/_authenticated/team'
@@ -56,6 +57,11 @@ const AdminReportsRoute = AdminReportsRouteImport.update({
 const AdminLeaveRoute = AdminLeaveRouteImport.update({
   id: '/leave',
   path: '/leave',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminHomeRoute = AdminHomeRouteImport.update({
+  id: '/home',
+  path: '/home',
   getParentRoute: () => AdminRouteRoute,
 } as any)
 const AdminEmployeesRoute = AdminEmployeesRouteImport.update({
@@ -105,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/team': typeof AuthenticatedTeamRoute
   '/admin/attendance': typeof AdminAttendanceRoute
   '/admin/employees': typeof AdminEmployeesRoute
+  '/admin/home': typeof AdminHomeRoute
   '/admin/leave': typeof AdminLeaveRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/': typeof AdminIndexRoute
@@ -118,6 +125,7 @@ export interface FileRoutesByTo {
   '/team': typeof AuthenticatedTeamRoute
   '/admin/attendance': typeof AdminAttendanceRoute
   '/admin/employees': typeof AdminEmployeesRoute
+  '/admin/home': typeof AdminHomeRoute
   '/admin/leave': typeof AdminLeaveRoute
   '/admin/reports': typeof AdminReportsRoute
   '/': typeof AuthenticatedIndexRoute
@@ -135,6 +143,7 @@ export interface FileRoutesById {
   '/_authenticated/team': typeof AuthenticatedTeamRoute
   '/admin/attendance': typeof AdminAttendanceRoute
   '/admin/employees': typeof AdminEmployeesRoute
+  '/admin/home': typeof AdminHomeRoute
   '/admin/leave': typeof AdminLeaveRoute
   '/admin/reports': typeof AdminReportsRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
@@ -153,6 +162,7 @@ export interface FileRouteTypes {
     | '/team'
     | '/admin/attendance'
     | '/admin/employees'
+    | '/admin/home'
     | '/admin/leave'
     | '/admin/reports'
     | '/admin/'
@@ -166,6 +176,7 @@ export interface FileRouteTypes {
     | '/team'
     | '/admin/attendance'
     | '/admin/employees'
+    | '/admin/home'
     | '/admin/leave'
     | '/admin/reports'
     | '/'
@@ -182,6 +193,7 @@ export interface FileRouteTypes {
     | '/_authenticated/team'
     | '/admin/attendance'
     | '/admin/employees'
+    | '/admin/home'
     | '/admin/leave'
     | '/admin/reports'
     | '/_authenticated/'
@@ -243,6 +255,13 @@ declare module '@tanstack/react-router' {
       path: '/leave'
       fullPath: '/admin/leave'
       preLoaderRoute: typeof AdminLeaveRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/home': {
+      id: '/admin/home'
+      path: '/home'
+      fullPath: '/admin/home'
+      preLoaderRoute: typeof AdminHomeRouteImport
       parentRoute: typeof AdminRouteRoute
     }
     '/admin/employees': {
@@ -321,6 +340,7 @@ const AuthenticatedRouteRouteWithChildren =
 interface AdminRouteRouteChildren {
   AdminAttendanceRoute: typeof AdminAttendanceRoute
   AdminEmployeesRoute: typeof AdminEmployeesRoute
+  AdminHomeRoute: typeof AdminHomeRoute
   AdminLeaveRoute: typeof AdminLeaveRoute
   AdminReportsRoute: typeof AdminReportsRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -329,6 +349,7 @@ interface AdminRouteRouteChildren {
 const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminAttendanceRoute: AdminAttendanceRoute,
   AdminEmployeesRoute: AdminEmployeesRoute,
+  AdminHomeRoute: AdminHomeRoute,
   AdminLeaveRoute: AdminLeaveRoute,
   AdminReportsRoute: AdminReportsRoute,
   AdminIndexRoute: AdminIndexRoute,

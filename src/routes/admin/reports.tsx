@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { Check } from "lucide-react";
 import { getAdminReports, reviewReport } from "@/lib/api/admin.functions";
+import { DEV_BYPASS } from "@/lib/dev-mock";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/reports")({
@@ -19,11 +20,12 @@ function ReportsPage() {
 
   const { data } = useQuery({
     queryKey: ["admin-reports", date],
-    queryFn: () => fetchReports({ data: { date } }),
+    queryFn: () =>
+      DEV_BYPASS ? Promise.resolve({ date, reports: [] }) : fetchReports({ data: { date } }),
   });
 
   const mut = useMutation({
-    mutationFn: (id: string) => reviewFn({ data: { id } }),
+    mutationFn: (id: string) => (DEV_BYPASS ? Promise.resolve({ ok: true }) : reviewFn({ data: { id } })),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-reports", date] });
       toast.success("Marked reviewed");

@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { Download } from "lucide-react";
 import { getEmployees, getEmployeeMonth } from "@/lib/api/admin.functions";
+import { DEV_BYPASS } from "@/lib/dev-mock";
 
 export const Route = createFileRoute("/admin/attendance")({
   head: () => ({ meta: [{ title: "Attendance — Admin" }] }),
@@ -27,7 +28,10 @@ function AttendancePage() {
   const [year] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
 
-  const { data: empData } = useQuery({ queryKey: ["admin-employees"], queryFn: () => fetchEmployees() });
+  const { data: empData } = useQuery({
+    queryKey: ["admin-employees"],
+    queryFn: () => (DEV_BYPASS ? Promise.resolve({ employees: [] }) : fetchEmployees()),
+  });
   const employees = empData?.employees ?? [];
 
   // Default to first employee once loaded.
@@ -37,7 +41,8 @@ function AttendancePage() {
 
   const { data } = useQuery({
     queryKey: ["admin-month", userId, year, month],
-    queryFn: () => fetchMonth({ data: { userId, year, month } }),
+    queryFn: () =>
+      DEV_BYPASS ? Promise.resolve({ rows: [] }) : fetchMonth({ data: { userId, year, month } }),
     enabled: !!userId,
   });
 
