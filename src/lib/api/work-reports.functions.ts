@@ -31,7 +31,7 @@ export const getMyReports = createServerFn({ method: "GET" })
 
 export const submitReport = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { content: string; hours: number }) => d)
+  .validator((d: { content: string; hours: number }) => d)
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const content = (data.content ?? "").slice(0, 4000).trim();

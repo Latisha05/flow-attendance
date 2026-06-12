@@ -1,8 +1,8 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { motion } from "framer-motion";
-import { LogOut } from "lucide-react";
+import { LogOut, LayoutDashboard, ChevronRight } from "lucide-react";
 import { getDashboard } from "@/lib/api/attendance.functions";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -43,6 +43,22 @@ function ProfilePage() {
         </p>
       </div>
 
+
+      {data?.isAdmin && (
+        <Link
+          to="/admin"
+          className="mb-3 flex items-center gap-3 p-4 rounded-2xl bg-white border border-border active:scale-[0.98] transition-transform"
+        >
+          <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+            <LayoutDashboard className="size-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-display text-sm font-extrabold tracking-tight">Admin panel</p>
+            <p className="text-[11px] text-muted-foreground font-medium">Manage employees, reports & leave</p>
+          </div>
+          <ChevronRight className="size-4 text-muted-foreground" />
+        </Link>
+      )}
 
       <motion.button
         whileTap={{ scale: 0.97 }}

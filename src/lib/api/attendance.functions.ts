@@ -54,7 +54,7 @@ export const getDashboard = createServerFn({ method: "GET" })
 
 export const punchIn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { lat?: number | null; lng?: number | null }) => d)
+  .validator((d: { lat?: number | null; lng?: number | null }) => d)
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
@@ -81,7 +81,7 @@ export const punchIn = createServerFn({ method: "POST" })
 
 export const getAttendanceMonth = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { year: number; month: number }) => d)
+  .validator((d: { year: number; month: number }) => d)
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const start = new Date(Date.UTC(data.year, data.month, 1));
@@ -99,7 +99,7 @@ export const getAttendanceMonth = createServerFn({ method: "GET" })
 
 export const punchOut = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { id: string; lat?: number | null; lng?: number | null }) => d)
+  .validator((d: { id: string; lat?: number | null; lng?: number | null }) => d)
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { data: existing } = await supabase

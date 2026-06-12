@@ -34,7 +34,7 @@ export const getLeaveData = createServerFn({ method: "GET" })
 
 export const requestLeave = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { start_date: string; end_date: string; reason: string }) => d)
+  .validator((d: { start_date: string; end_date: string; reason: string }) => d)
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const days = workingDaysBetween(data.start_date, data.end_date);
@@ -128,7 +128,7 @@ export const getAdminOps = createServerFn({ method: "GET" })
 
 export const decideLeave = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { id: string; approve: boolean }) => d)
+  .validator((d: { id: string; approve: boolean }) => d)
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", userId);

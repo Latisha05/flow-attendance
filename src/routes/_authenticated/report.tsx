@@ -81,20 +81,7 @@ function ReportPage() {
             placeholder="What did you work on today?"
             className="w-full px-3 py-2.5 rounded-2xl bg-muted/50 border border-border resize-none text-sm disabled:opacity-60"
           />
-          <label className="block">
-            <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Hours worked</span>
-            <input
-              type="number"
-              step="0.5"
-              min="0"
-              max="24"
-              value={hours}
-              onChange={(e) => setHours(e.target.value)}
-              disabled={locked}
-              placeholder="8"
-              className="mt-1 w-full h-12 px-3 rounded-2xl bg-muted/50 border border-border tabular-nums disabled:opacity-60"
-            />
-          </label>
+
           <motion.button
             whileTap={{ scale: 0.97 }}
             disabled={mut.isPending || locked}
@@ -128,7 +115,6 @@ function ReportPage() {
                 </div>
                 <p className="font-bold text-sm">
                   {new Date(r.report_date + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                  <span className="text-muted-foreground font-medium"> · {Number(r.hours).toFixed(1)}h</span>
                 </p>
               </div>
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${statusStyles[r.status]}`}>
