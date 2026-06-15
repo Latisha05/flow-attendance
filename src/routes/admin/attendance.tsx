@@ -1,10 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { Download } from "lucide-react";
-import { getEmployees, getEmployeeMonth } from "@/lib/api/admin.functions";
-import { DEV_BYPASS } from "@/lib/dev-mock";
+import { getEmployees, getEmployeeMonth } from "@/lib/store";
 
 export const Route = createFileRoute("/admin/attendance")({
   head: () => ({ meta: [{ title: "Attendance — Admin" }] }),
@@ -21,16 +19,13 @@ function fmtDate(iso: string) {
 
 function AttendancePage() {
   const now = new Date();
-  const fetchEmployees = useServerFn(getEmployees);
-  const fetchMonth = useServerFn(getEmployeeMonth);
-
   const [userId, setUserId] = useState<string>("");
   const [year] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
 
   const { data: empData } = useQuery({
     queryKey: ["admin-employees"],
-    queryFn: () => (DEV_BYPASS ? Promise.resolve({ employees: [] }) : fetchEmployees()),
+    queryFn: () => getEmployees(),
   });
   const employees = empData?.employees ?? [];
 
@@ -41,8 +36,7 @@ function AttendancePage() {
 
   const { data } = useQuery({
     queryKey: ["admin-month", userId, year, month],
-    queryFn: () =>
-      DEV_BYPASS ? Promise.resolve({ rows: [] }) : fetchMonth({ data: { userId, year, month } }),
+    queryFn: () => getEmployeeMonth(userId, year, month),
     enabled: !!userId,
   });
 

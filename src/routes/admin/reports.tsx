@@ -1,10 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { Check } from "lucide-react";
-import { getAdminReports, reviewReport } from "@/lib/api/admin.functions";
-import { DEV_BYPASS } from "@/lib/dev-mock";
+import { getAdminReports, reviewReport } from "@/lib/store";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/reports")({
@@ -15,17 +13,14 @@ export const Route = createFileRoute("/admin/reports")({
 function ReportsPage() {
   const qc = useQueryClient();
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const fetchReports = useServerFn(getAdminReports);
-  const reviewFn = useServerFn(reviewReport);
 
   const { data } = useQuery({
     queryKey: ["admin-reports", date],
-    queryFn: () =>
-      DEV_BYPASS ? Promise.resolve({ date, reports: [] }) : fetchReports({ data: { date } }),
+    queryFn: () => getAdminReports(date),
   });
 
   const mut = useMutation({
-    mutationFn: (id: string) => (DEV_BYPASS ? Promise.resolve({ ok: true }) : reviewFn({ data: { id } })),
+    mutationFn: (id: string) => reviewReport(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-reports", date] });
       toast.success("Marked reviewed");

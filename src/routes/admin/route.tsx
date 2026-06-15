@@ -1,25 +1,10 @@
-import { createFileRoute, Outlet, redirect, Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { Home, Users, FileText, CalendarOff, Clock, LogOut, ArrowLeft } from "lucide-react";
-import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
-import { DEV_BYPASS } from "@/lib/dev-mock";
+import { createFileRoute, Outlet, Link, useLocation } from "@tanstack/react-router";
+import { Home, Users, FileText, CalendarOff, Clock, ArrowLeft } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
 
 export const Route = createFileRoute("/admin")({
   ssr: false,
-  beforeLoad: async () => {
-    // Dev-only: with no backend, let the panel through so the UI can be reviewed.
-    if (DEV_BYPASS) return { user: { id: "dev-admin" } as any };
-    if (!isSupabaseConfigured) throw redirect({ to: "/auth" });
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) throw redirect({ to: "/auth" });
-    const { data: roles } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", data.user.id);
-    const isAdmin = (roles ?? []).some((r) => r.role === "admin");
-    if (!isAdmin) throw redirect({ to: "/" });
-    return { user: data.user };
-  },
+  // Unauthenticated for now — open access to the web admin panel.
   component: AdminLayout,
 });
 
@@ -33,12 +18,6 @@ const nav = [
 
 function AdminLayout() {
   const location = useLocation();
-  const navigate = useNavigate();
-
-  async function signOut() {
-    await supabase.auth.signOut();
-    navigate({ to: "/auth", replace: true });
-  }
 
   return (
     <div className="min-h-[100dvh] bg-background text-foreground flex">
@@ -68,7 +47,7 @@ function AdminLayout() {
             );
           })}
         </nav>
-        <div className="p-3 border-t border-border space-y-1">
+        <div className="p-3 border-t border-border">
           <Link
             to="/"
             className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-muted-foreground hover:bg-muted transition-colors"
@@ -76,13 +55,6 @@ function AdminLayout() {
             <ArrowLeft className="size-4" />
             Employee app
           </Link>
-          <button
-            onClick={signOut}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-muted-foreground hover:bg-muted transition-colors"
-          >
-            <LogOut className="size-4" />
-            Sign out
-          </button>
         </div>
       </aside>
 

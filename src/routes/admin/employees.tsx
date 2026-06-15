@@ -1,9 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Plus, X, UserPlus } from "lucide-react";
-import { getEmployees } from "@/lib/api/admin.functions";
+import { Plus, X, UserPlus, Copy } from "lucide-react";
+import { addEmployee, getEmployees, DEFAULT_PASSWORD, type Employee } from "@/lib/store";
 import { toast } from "sonner";
 import { PunchEditor } from "./-punch-editor";
 
@@ -17,10 +16,9 @@ const TEAMS = ["Engineering", "Design", "Sales", "Operations", "Support"];
 
 function EmployeesPage() {
   const qc = useQueryClient();
-  const fetchEmployees = useServerFn(getEmployees);
   const { data } = useQuery({
     queryKey: ["admin-employees"],
-    queryFn: () => fetchEmployees(),
+    queryFn: () => getEmployees(),
   });
   const [editPunch, setEditPunch] = useState<{ id: string; name: string } | null>(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -46,7 +44,8 @@ function EmployeesPage() {
       </div>
 
       <div className="bg-white border border-border rounded-2xl overflow-hidden">
-        <div className="hidden md:grid grid-cols-[1fr_1fr_1fr] gap-4 px-5 py-3 border-b border-border text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+        <div className="hidden md:grid grid-cols-[140px_1fr_1fr_1fr] gap-4 px-5 py-3 border-b border-border text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+          <span>Employee ID</span>
           <span>Name</span>
           <span>Designation</span>
           <span>Team</span>
@@ -59,8 +58,9 @@ function EmployeesPage() {
         {employees.map((e) => (
           <div
             key={e.id}
-            className="grid md:grid-cols-[1fr_1fr_1fr] gap-3 md:gap-4 px-5 py-4 border-b border-border last:border-0 items-center"
+            className="grid md:grid-cols-[140px_1fr_1fr_1fr] gap-3 md:gap-4 px-5 py-4 border-b border-border last:border-0 items-center"
           >
+            <div className="font-mono text-xs font-bold text-primary">{e.emp_code}</div>
             <div className="min-w-0">
               <button
                 onClick={() => setEditPunch({ id: e.id, name: e.full_name || "Unnamed" })}
@@ -70,8 +70,8 @@ function EmployeesPage() {
                 {e.full_name || "Unnamed"}
               </button>
             </div>
-            <div className="text-sm text-muted-foreground">—</div>
-            <div className="text-sm text-muted-foreground">—</div>
+            <div className="text-sm text-muted-foreground">{e.designation || "—"}</div>
+            <div className="text-sm text-muted-foreground">{e.team || "—"}</div>
           </div>
         ))}
       </div>
@@ -84,17 +84,28 @@ function EmployeesPage() {
 
       {addOpen && (
         <Modal title="Add employee" onClose={() => setAddOpen(false)}>
-          <AddEmployeeForm onClose={() => setAddOpen(false)} />
+          <AddEmployeeForm onClose={() => setAddOpen(false)} onSaved={invalidate} />
         </Modal>
       )}
     </div>
   );
 }
 
-function AddEmployeeForm({ onClose }: { onClose: () => void }) {
+function AddEmployeeForm({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
   const [name, setName] = useState("");
   const [designation, setDesignation] = useState("");
   const [team, setTeam] = useState(TEAMS[0]);
+  const [created, setCreated] = useState<Employee | null>(null);
+
+  const mut = useMutation({
+    mutationFn: () => addEmployee(name, designation, team),
+    onSuccess: (emp) => {
+      onSaved();
+      setCreated(emp);
+      toast.success(`Added ${emp.full_name}`);
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed"),
+  });
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -102,9 +113,30 @@ function AddEmployeeForm({ onClose }: { onClose: () => void }) {
       toast.error("Name is required");
       return;
     }
-    // No backend wired yet — capture the values and close.
-    toast.success(`Saved ${name.trim()} (${designation || "—"}, ${team})`);
-    onClose();
+    mut.mutate();
+  }
+
+  // After creation, show the login credentials for the admin to share.
+  if (created) {
+    return (
+      <div className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          <span className="font-bold text-foreground">{created.full_name}</span> was added. Share these
+          login details with them:
+        </p>
+        <Credential label="Employee ID" value={created.emp_code} />
+        <Credential label="Password" value={created.password} />
+        <p className="text-[11px] text-muted-foreground">
+          They sign in with these on the employee app.
+        </p>
+        <button
+          onClick={onClose}
+          className="w-full h-12 rounded-2xl bg-foreground text-background font-semibold"
+        >
+          Done
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -153,6 +185,27 @@ function AddEmployeeForm({ onClose }: { onClose: () => void }) {
         Add employee
       </button>
     </form>
+  );
+}
+
+function Credential({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-muted/50 border border-border">
+      <div>
+        <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{label}</p>
+        <p className="font-mono font-bold text-sm mt-0.5">{value}</p>
+      </div>
+      <button
+        onClick={() => {
+          navigator.clipboard?.writeText(value);
+          toast.success(`${label} copied`);
+        }}
+        className="size-9 rounded-xl border border-border flex items-center justify-center hover:bg-white"
+        title={`Copy ${label}`}
+      >
+        <Copy className="size-4" />
+      </button>
+    </div>
   );
 }
 

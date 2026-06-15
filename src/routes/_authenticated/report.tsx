@@ -1,31 +1,80 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
-import { motion } from "framer-motion";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { motion, useInView } from "framer-motion";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { FileText } from "lucide-react";
-import { getMyReports, submitReport } from "@/lib/api/work-reports.functions";
+import { getMyReports, submitReport } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
+import gsap from "gsap";
 
 export const Route = createFileRoute("/_authenticated/report")({
   head: () => ({ meta: [{ title: "Work report — Punch" }] }),
   component: ReportPage,
 });
 
-const statusStyles = {
-  reviewed: "bg-green-50 text-green-700",
-  pending: "bg-yellow-50 text-yellow-700",
-} as const;
+// Badge variants with glow
+function StatusBadge({ status }: { status: "reviewed" | "pending" }) {
+  return (
+    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase badge-${status}`}>
+      {status}
+    </span>
+  );
+}
+
+// Animated history card
+function HistoryCard({
+  r,
+  delay,
+}: {
+  r: { id: string; report_date: string; status: "reviewed" | "pending"; content: string };
+  delay: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const isInView = useInView(ref, { once: true, margin: "0px 0px -40px 0px" });
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 16 }}
+      animate={isInView ? { opacity: 1, y: 0 } : {}}
+      transition={{ delay, duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
+      className="p-4 rounded-2xl card-hero-border"
+      style={{ background: "oklch(1 0 0 / 0.04)", border: "1px solid oklch(1 0 0 / 0.07)" }}
+    >
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center gap-2">
+          <div className="size-7 rounded-lg bg-primary/15 flex items-center justify-center text-primary">
+            <FileText className="size-3.5" />
+          </div>
+          <p className="font-bold text-sm">
+            {new Date(r.report_date + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+          </p>
+        </div>
+        <StatusBadge status={r.status} />
+      </div>
+      <p className="text-xs text-muted-foreground whitespace-pre-wrap line-clamp-3">{r.content}</p>
+    </motion.div>
+  );
+}
 
 function ReportPage() {
   const qc = useQueryClient();
-  const fetchReports = useServerFn(getMyReports);
-  const submit = useServerFn(submitReport);
-  const { data } = useQuery({ queryKey: ["work-reports"], queryFn: () => fetchReports() });
+  const { user } = useAuth();
+  const userId = user?.id ?? "";
+  const { data } = useQuery({ queryKey: ["work-reports", userId], queryFn: () => getMyReports(userId) });
 
   const [content, setContent] = useState("");
   const [hours, setHours] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const submitBtnRef = useRef<HTMLButtonElement>(null);
+  const headerRef = useRef<HTMLHeadingElement>(null);
+
+  // GSAP page entrance
+  useLayoutEffect(() => {
+    if (!headerRef.current) return;
+    gsap.from(headerRef.current, { y: -16, opacity: 0, duration: 0.5, ease: "power3.out" });
+  }, []);
 
   const autoResize = useCallback(() => {
     const el = textareaRef.current;
@@ -34,7 +83,7 @@ function ReportPage() {
     el.style.height = `${el.scrollHeight}px`;
   }, []);
 
-  // Hydrate the editor with today's saved report when it loads.
+  // Hydrate editor with today's saved report
   useEffect(() => {
     if (data?.today) {
       setContent(data.today.content);
@@ -42,16 +91,21 @@ function ReportPage() {
     }
   }, [data?.today?.id]);
 
-  // Auto-resize when content changes (including hydration).
   useEffect(() => { autoResize(); }, [content, autoResize]);
 
   const locked = data?.today?.status === "reviewed";
 
   const mut = useMutation({
-    mutationFn: () => submit({ data: { content, hours: Number(hours) || 0 } }),
+    mutationFn: () => submitReport(userId, content, Number(hours) || 0),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["work-reports"] });
-      toast.success("Report saved");
+      qc.invalidateQueries({ queryKey: ["work-reports", userId] });
+      toast.success("Report saved ✓");
+      // Button bounce on success
+      if (submitBtnRef.current) {
+        gsap.timeline()
+          .to(submitBtnRef.current, { scale: 0.96, duration: 0.1, ease: "power2.in" })
+          .to(submitBtnRef.current, { scale: 1, duration: 0.3, ease: "back.out(2)" });
+      }
     },
     onError: (e: any) => toast.error(e.message ?? "Failed"),
   });
@@ -60,27 +114,23 @@ function ReportPage() {
 
   return (
     <div className="px-6 pt-12">
-      <h1 className="font-display text-3xl font-extrabold mb-6">Work report</h1>
+      <h1 ref={headerRef} className="font-display text-3xl font-extrabold mb-6">Work report</h1>
 
-      {/* Today's editor */}
-      <div className="bg-white border border-border rounded-3xl p-5 mb-8">
+      {/* Today's editor — hero card */}
+      <div
+        className="rounded-3xl p-5 mb-8 card-hero-border"
+        style={{ background: "oklch(1 0 0 / 0.05)", border: "1px solid oklch(1 0 0 / 0.08)" }}
+      >
         <div className="flex justify-between items-center mb-4">
           <div>
             <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Today</p>
             <p className="font-display text-sm font-extrabold mt-0.5">{todayLabel}</p>
           </div>
-          {data?.today && (
-            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${statusStyles[data.today.status]}`}>
-              {data.today.status}
-            </span>
-          )}
+          {data?.today && <StatusBadge status={data.today.status} />}
         </div>
 
         <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            mut.mutate();
-          }}
+          onSubmit={(e) => { e.preventDefault(); mut.mutate(); }}
           className="space-y-3"
         >
           <textarea
@@ -91,16 +141,36 @@ function ReportPage() {
             rows={5}
             maxLength={4000}
             placeholder="What did you work on today?"
-            className="w-full px-3 py-2.5 rounded-2xl bg-muted/50 border border-border resize-none text-sm disabled:opacity-60 overflow-hidden"
+            className="w-full px-3 py-2.5 rounded-2xl resize-none text-sm disabled:opacity-50 overflow-hidden outline-none transition-all duration-200"
+            style={{
+              background: "oklch(1 0 0 / 0.04)",
+              border: "1px solid oklch(1 0 0 / 0.1)",
+            }}
+            onFocus={(e) => {
+              e.currentTarget.style.border = "1px solid oklch(0.65 0.22 264 / 0.5)";
+              e.currentTarget.style.boxShadow = "0 0 0 3px oklch(0.65 0.22 264 / 0.15)";
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.border = "1px solid oklch(1 0 0 / 0.1)";
+              e.currentTarget.style.boxShadow = "none";
+            }}
           />
 
-          <motion.button
-            whileTap={{ scale: 0.97 }}
+          <button
+            ref={submitBtnRef}
+            type="submit"
             disabled={mut.isPending || locked}
-            className="w-full h-12 rounded-2xl bg-foreground text-background font-semibold disabled:opacity-50"
+            className="w-full h-12 rounded-2xl font-semibold disabled:opacity-50 transition-opacity"
+            style={{
+              background: locked
+                ? "oklch(1 0 0 / 0.1)"
+                : "linear-gradient(135deg, oklch(0.56 0.22 264), oklch(0.65 0.18 298))",
+              color: locked ? "oklch(0.6 0.02 264)" : "white",
+              boxShadow: locked ? "none" : "0 4px 20px oklch(0.65 0.22 264 / 0.3)",
+            }}
           >
-            {locked ? "Reviewed — locked" : mut.isPending ? "…" : data?.today ? "Update report" : "Submit report"}
-          </motion.button>
+            {locked ? "Reviewed — locked" : mut.isPending ? "Saving…" : data?.today ? "Update report" : "Submit report"}
+          </button>
         </form>
       </div>
 
@@ -108,33 +178,15 @@ function ReportPage() {
       <p className="text-[11px] font-bold uppercase text-muted-foreground tracking-widest mb-3">History</p>
       <div className="space-y-2">
         {(data?.history ?? []).length === 0 && (
-          <div className="p-6 text-center text-sm text-muted-foreground bg-white border border-border rounded-2xl">
-            No reports yet.
+          <div
+            className="p-6 text-center text-sm text-muted-foreground rounded-2xl"
+            style={{ background: "oklch(1 0 0 / 0.04)", border: "1px solid oklch(1 0 0 / 0.07)" }}
+          >
+            No reports yet. Start by submitting today's report above.
           </div>
         )}
         {(data?.history ?? []).map((r, i) => (
-          <motion.div
-            key={r.id}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.03 }}
-            className="p-4 rounded-2xl bg-white border border-border"
-          >
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="flex items-center gap-2">
-                <div className="size-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                  <FileText className="size-3.5" />
-                </div>
-                <p className="font-bold text-sm">
-                  {new Date(r.report_date + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                </p>
-              </div>
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${statusStyles[r.status]}`}>
-                {r.status}
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground whitespace-pre-wrap line-clamp-3">{r.content}</p>
-          </motion.div>
+          <HistoryCard key={r.id} r={r} delay={i * 0.04} />
         ))}
       </div>
     </div>

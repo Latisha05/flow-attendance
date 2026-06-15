@@ -19,7 +19,6 @@ import { Route as AdminLeaveRouteImport } from './routes/admin/leave'
 import { Route as AdminHomeRouteImport } from './routes/admin/home'
 import { Route as AdminEmployeesRouteImport } from './routes/admin/employees'
 import { Route as AdminAttendanceRouteImport } from './routes/admin/attendance'
-import { Route as AuthenticatedTeamRouteImport } from './routes/_authenticated/team'
 import { Route as AuthenticatedReportRouteImport } from './routes/_authenticated/report'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedLeaveRouteImport } from './routes/_authenticated/leave'
@@ -74,11 +73,6 @@ const AdminAttendanceRoute = AdminAttendanceRouteImport.update({
   path: '/attendance',
   getParentRoute: () => AdminRouteRoute,
 } as any)
-const AuthenticatedTeamRoute = AuthenticatedTeamRouteImport.update({
-  id: '/team',
-  path: '/team',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedReportRoute = AuthenticatedReportRouteImport.update({
   id: '/report',
   path: '/report',
@@ -108,7 +102,6 @@ export interface FileRoutesByFullPath {
   '/leave': typeof AuthenticatedLeaveRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/report': typeof AuthenticatedReportRoute
-  '/team': typeof AuthenticatedTeamRoute
   '/admin/attendance': typeof AdminAttendanceRoute
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/home': typeof AdminHomeRoute
@@ -122,7 +115,6 @@ export interface FileRoutesByTo {
   '/leave': typeof AuthenticatedLeaveRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/report': typeof AuthenticatedReportRoute
-  '/team': typeof AuthenticatedTeamRoute
   '/admin/attendance': typeof AdminAttendanceRoute
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/home': typeof AdminHomeRoute
@@ -140,7 +132,6 @@ export interface FileRoutesById {
   '/_authenticated/leave': typeof AuthenticatedLeaveRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/report': typeof AuthenticatedReportRoute
-  '/_authenticated/team': typeof AuthenticatedTeamRoute
   '/admin/attendance': typeof AdminAttendanceRoute
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/home': typeof AdminHomeRoute
@@ -159,7 +150,6 @@ export interface FileRouteTypes {
     | '/leave'
     | '/profile'
     | '/report'
-    | '/team'
     | '/admin/attendance'
     | '/admin/employees'
     | '/admin/home'
@@ -173,7 +163,6 @@ export interface FileRouteTypes {
     | '/leave'
     | '/profile'
     | '/report'
-    | '/team'
     | '/admin/attendance'
     | '/admin/employees'
     | '/admin/home'
@@ -190,7 +179,6 @@ export interface FileRouteTypes {
     | '/_authenticated/leave'
     | '/_authenticated/profile'
     | '/_authenticated/report'
-    | '/_authenticated/team'
     | '/admin/attendance'
     | '/admin/employees'
     | '/admin/home'
@@ -278,13 +266,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAttendanceRouteImport
       parentRoute: typeof AdminRouteRoute
     }
-    '/_authenticated/team': {
-      id: '/_authenticated/team'
-      path: '/team'
-      fullPath: '/team'
-      preLoaderRoute: typeof AuthenticatedTeamRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/report': {
       id: '/_authenticated/report'
       path: '/report'
@@ -321,7 +302,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedLeaveRoute: typeof AuthenticatedLeaveRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedReportRoute: typeof AuthenticatedReportRoute
-  AuthenticatedTeamRoute: typeof AuthenticatedTeamRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
 
@@ -330,7 +310,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedLeaveRoute: AuthenticatedLeaveRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedReportRoute: AuthenticatedReportRoute,
-  AuthenticatedTeamRoute: AuthenticatedTeamRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
 }
 

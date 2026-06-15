@@ -1,8 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { correctPunch, getEmployeeMonth } from "@/lib/api/admin.functions";
-import { DEV_BYPASS } from "@/lib/dev-mock";
+import { correctPunch, getEmployeeMonth } from "@/lib/store";
 import { toast } from "sonner";
 
 // datetime-local wants "YYYY-MM-DDTHH:mm" in local time.
@@ -29,18 +27,15 @@ export function PunchEditor({ userId, onSaved }: { userId: string; onSaved: () =
   const now = new Date();
   const [year] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
-  const fetchMonth = useServerFn(getEmployeeMonth);
-  const correctFn = useServerFn(correctPunch);
 
   const { data, isFetching } = useQuery({
     queryKey: ["admin-month", userId, year, month],
-    queryFn: () =>
-      DEV_BYPASS ? Promise.resolve({ rows: [] }) : fetchMonth({ data: { userId, year, month } }),
+    queryFn: () => getEmployeeMonth(userId, year, month),
   });
 
   const mut = useMutation({
     mutationFn: (v: { id: string; punch_in_at: string; punch_out_at: string | null }) =>
-      DEV_BYPASS ? Promise.resolve({ ok: true }) : correctFn({ data: v }),
+      correctPunch(v.id, v.punch_in_at, v.punch_out_at),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-month", userId] });
       onSaved();
