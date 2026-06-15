@@ -35,6 +35,26 @@ export type WorkReport = {
   status: "pending" | "reviewed";
 };
 
+export type WfhRequest = {
+  id: string;
+  user_id: string;
+  date: string; // single day worked from home
+  reason: string;
+  status: "pending" | "approved" | "declined";
+  created_at: string;
+};
+
+export type Expense = {
+  id: string;
+  user_id: string;
+  date: string; // date the expense was incurred
+  amount: number; // in rupees
+  category: string;
+  reason: string;
+  status: "pending" | "approved" | "declined";
+  created_at: string;
+};
+
 export type Employee = {
   id: string;
   emp_code: string; // auto-generated login ID, e.g. EMP-0001
@@ -45,6 +65,20 @@ export type Employee = {
   created_at: string;
 };
 
+export const EXPENSE_CATEGORIES = ["Travel", "Food", "Equipment", "Shoot", "Other"];
+
+// Team list — selectable when adding an employee.
+export const TEAMS = [
+  "Tech", // was IT
+  "Studio", // was Designing
+  "Growth", // was Marketing
+  "Buzz", // was Social Media
+  "Outreach", // was Telecalling
+  "Production",
+  "Fleet", // was Driver
+  "People Ops", // was HR / Admin
+];
+
 // Default password assigned to every new employee. They log in with their
 // Employee ID + this until a real auth backend (Firestore) adds password reset.
 export const DEFAULT_PASSWORD = "flow@1234";
@@ -53,6 +87,8 @@ type DB = {
   attendance: Attendance[];
   leave: LeaveRequest[];
   reports: WorkReport[];
+  wfh: WfhRequest[];
+  expenses: Expense[];
   employees: Employee[];
   seq: number; // running counter for emp_code generation
   profile: { pl_balance: number };
@@ -61,7 +97,16 @@ type DB = {
 const KEY = "flow.data";
 
 function read(): DB {
-  const empty: DB = { attendance: [], leave: [], reports: [], employees: [], seq: 0, profile: { pl_balance: 1 } };
+  const empty: DB = {
+    attendance: [],
+    leave: [],
+    reports: [],
+    wfh: [],
+    expenses: [],
+    employees: [],
+    seq: 0,
+    profile: { pl_balance: 1 },
+  };
   if (typeof localStorage === "undefined") return empty;
   try {
     const raw = localStorage.getItem(KEY);
@@ -290,6 +335,19 @@ export async function addEmployee(full_name: string, designation: string, team: 
   return emp;
 }
 
+export async function deleteEmployee(employeeId: string) {
+  const db = read();
+  db.employees = db.employees.filter((e) => e.id !== employeeId);
+  // Clean up the employee's associated records too.
+  db.attendance = db.attendance.filter((a) => a.user_id !== employeeId);
+  db.leave = db.leave.filter((l) => l.user_id !== employeeId);
+  db.reports = db.reports.filter((r) => r.user_id !== employeeId);
+  db.wfh = (db.wfh ?? []).filter((w) => w.user_id !== employeeId);
+  db.expenses = (db.expenses ?? []).filter((x) => x.user_id !== employeeId);
+  write(db);
+  return { ok: true };
+}
+
 /** Login lookup: match Employee ID (case-insensitive) + password. */
 export async function findEmployeeByCredentials(empCode: string, password: string) {
   const db = read();
@@ -323,6 +381,148 @@ export async function correctPunch(attendanceId: string, punch_in_at: string, pu
   }
   write(db);
   return { ok: true };
+}
+
+// ---- Work from home --------------------------------------------------------
+
+export async function getMyWfh(userId: string) {
+  const db = read();
+  return {
+    requests: (db.wfh ?? [])
+      .filter((w) => w.user_id === userId)
+      .sort((a, b) => b.created_at.localeCompare(a.created_at)),
+  };
+}
+
+export async function requestWfh(userId: string, date: string, reason: string) {
+  const db = read();
+  if (!date) throw new Error("Pick a date");
+  db.wfh.push({
+    id: id(),
+    user_id: userId,
+    date,
+    reason: reason.slice(0, 500),
+    status: "pending",
+    created_at: new Date().toISOString(),
+  });
+  write(db);
+  return { ok: true };
+}
+
+export async function decideWfh(wfhId: string, approve: boolean) {
+  const db = read();
+  const r = db.wfh.find((w) => w.id === wfhId);
+  if (!r) throw new Error("Not found");
+  if (r.status !== "pending") throw new Error("Already decided");
+  r.status = approve ? "approved" : "declined";
+  write(db);
+  return { ok: true };
+}
+
+// ---- Expenses --------------------------------------------------------------
+
+export async function getMyExpenses(userId: string) {
+  const db = read();
+  return {
+    expenses: (db.expenses ?? [])
+      .filter((x) => x.user_id === userId)
+      .sort((a, b) => b.created_at.localeCompare(a.created_at)),
+  };
+}
+
+export async function requestExpense(
+  userId: string,
+  date: string,
+  amount: number,
+  category: string,
+  reason: string,
+) {
+  const db = read();
+  const amt = Math.max(0, Number(amount) || 0);
+  if (amt <= 0) throw new Error("Enter a valid amount");
+  if (!date) throw new Error("Pick a date");
+  db.expenses.push({
+    id: id(),
+    user_id: userId,
+    date,
+    amount: amt,
+    category,
+    reason: reason.slice(0, 500),
+    status: "pending",
+    created_at: new Date().toISOString(),
+  });
+  write(db);
+  return { ok: true };
+}
+
+export async function decideExpense(expenseId: string, approve: boolean) {
+  const db = read();
+  const x = db.expenses.find((e) => e.id === expenseId);
+  if (!x) throw new Error("Not found");
+  if (x.status !== "pending") throw new Error("Already decided");
+  x.status = approve ? "approved" : "declined";
+  write(db);
+  return { ok: true };
+}
+
+// ---- Admin dashboard (single date) ----------------------------------------
+
+export async function getDashboardByDate(date: string) {
+  const db = read();
+  const dayStart = new Date(date + "T00:00:00").getTime();
+  const dayEnd = new Date(date + "T23:59:59.999").getTime();
+  const inDay = (iso: string) => {
+    const t = new Date(iso).getTime();
+    return t >= dayStart && t <= dayEnd;
+  };
+
+  // Present: anyone with an attendance row that day.
+  const presentIds = new Set(db.attendance.filter((a) => inDay(a.punch_in_at)).map((a) => a.user_id));
+  const present = db.employees
+    .filter((e) => presentIds.has(e.id))
+    .map((e) => ({ id: e.id, name: e.full_name, team: e.team }));
+
+  // On approved leave covering that day.
+  const onLeave = db.leave
+    .filter((l) => l.status === "approved" && l.start_date <= date && l.end_date >= date)
+    .map((l) => ({ id: l.id, name: nameFor(db, l.user_id) }));
+
+  // Approved WFH that day.
+  const wfhToday = db.wfh
+    .filter((w) => w.status === "approved" && w.date === date)
+    .map((w) => ({ id: w.id, name: nameFor(db, w.user_id) }));
+
+  // Pending requests submitted that day.
+  const leaveRequests = db.leave
+    .filter((l) => l.created_at.slice(0, 10) === date)
+    .map((l) => ({ ...l, name: nameFor(db, l.user_id) }));
+  const wfhRequests = db.wfh
+    .filter((w) => w.created_at.slice(0, 10) === date)
+    .map((w) => ({ ...w, name: nameFor(db, w.user_id) }));
+  const expenses = db.expenses
+    .filter((x) => x.date === date)
+    .map((x) => ({ ...x, name: nameFor(db, x.user_id) }));
+
+  const absent = db.employees
+    .filter((e) => !presentIds.has(e.id) && !onLeave.some((l) => nameFor(db, e.id) === l.name))
+    .map((e) => ({ id: e.id, name: e.full_name, team: e.team }));
+
+  return {
+    date,
+    counts: {
+      total: db.employees.length,
+      present: present.length,
+      onLeave: onLeave.length,
+      wfh: wfhToday.length,
+      absent: absent.length,
+    },
+    present,
+    onLeave,
+    wfhToday,
+    leaveRequests,
+    wfhRequests,
+    expenses,
+  };
 }
 
 export async function getAdminOps() {

@@ -73,7 +73,7 @@ function AttendancePage() {
           <select
             value={userId}
             onChange={(e) => setUserId(e.target.value)}
-            className="mt-1 block h-11 px-3 rounded-xl bg-white border border-border min-w-[200px]"
+            className="mt-1 block h-11 px-3 rounded-xl bg-white border border-border min-w-[200px] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition"
           >
             {employees.map((e) => (
               <option key={e.id} value={e.id}>
@@ -84,7 +84,7 @@ function AttendancePage() {
         </label>
 
         <div className="flex items-center gap-2">
-          <button onClick={() => setMonth((m) => m - 1)} className="h-11 px-3 rounded-xl border border-border font-semibold hover:bg-muted">
+          <button onClick={() => setMonth((m) => m - 1)} className="h-11 px-3 rounded-xl border border-border font-semibold hover:bg-muted hover:border-primary/40 transition-all">
             ‹
           </button>
           <span className="text-sm font-bold w-32 text-center">{monthLabel}</span>
@@ -99,15 +99,16 @@ function AttendancePage() {
         <button
           onClick={exportCsv}
           disabled={rows.length === 0}
-          className="h-11 px-4 rounded-xl bg-foreground text-background text-sm font-bold flex items-center gap-2 disabled:opacity-40 ml-auto"
+          className="h-11 px-4 rounded-xl text-white text-sm font-bold flex items-center gap-2 disabled:opacity-40 ml-auto transition-opacity hover:opacity-90"
+          style={{ background: "linear-gradient(135deg, hsl(243 75% 59%), hsl(258 80% 68%))", boxShadow: "0 4px 12px rgba(79,70,229,0.25)" }}
         >
           <Download className="size-4" />
           Export CSV
         </button>
       </div>
 
-      <div className="bg-white border border-border rounded-2xl overflow-hidden">
-        <div className="grid grid-cols-[1fr_100px_100px_100px] gap-4 px-5 py-3 border-b border-border text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+      <div className="bg-white border border-border rounded-2xl overflow-hidden" style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.05)" }}>
+        <div className="grid grid-cols-[1fr_100px_100px_100px] gap-4 px-5 py-3 border-b-2 border-primary/10 text-[11px] font-bold uppercase tracking-wider text-muted-foreground bg-muted/30">
           <span>Date</span>
           <span>In</span>
           <span>Out</span>
@@ -115,7 +116,7 @@ function AttendancePage() {
         </div>
         {rows.length === 0 && <div className="p-8 text-center text-sm text-muted-foreground">No attendance this month.</div>}
         {rows.map((r) => (
-          <div key={r.id} className="grid grid-cols-[1fr_100px_100px_100px] gap-4 px-5 py-3 border-b border-border last:border-0 text-sm">
+          <div key={r.id} className="grid grid-cols-[1fr_100px_100px_100px] gap-4 px-5 py-3 border-b border-border last:border-0 text-sm hover:bg-primary/[0.025] transition-colors">
             <span className="font-medium">{fmtDate(r.punch_in_at)}</span>
             <span className="font-mono tabular-nums">{fmtTime(r.punch_in_at)}</span>
             <span className="font-mono tabular-nums">{fmtTime(r.punch_out_at)}</span>

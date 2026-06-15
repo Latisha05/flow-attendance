@@ -14,14 +14,18 @@ import { Route as AdminRouteRouteImport } from './routes/admin/route'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AdminWfhRouteImport } from './routes/admin/wfh'
 import { Route as AdminReportsRouteImport } from './routes/admin/reports'
 import { Route as AdminLeaveRouteImport } from './routes/admin/leave'
 import { Route as AdminHomeRouteImport } from './routes/admin/home'
+import { Route as AdminExpensesRouteImport } from './routes/admin/expenses'
 import { Route as AdminEmployeesRouteImport } from './routes/admin/employees'
 import { Route as AdminAttendanceRouteImport } from './routes/admin/attendance'
+import { Route as AuthenticatedWfhRouteImport } from './routes/_authenticated/wfh'
 import { Route as AuthenticatedReportRouteImport } from './routes/_authenticated/report'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedLeaveRouteImport } from './routes/_authenticated/leave'
+import { Route as AuthenticatedExpensesRouteImport } from './routes/_authenticated/expenses'
 import { Route as AuthenticatedCalendarRouteImport } from './routes/_authenticated/calendar'
 
 const AuthRoute = AuthRouteImport.update({
@@ -48,6 +52,11 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AdminWfhRoute = AdminWfhRouteImport.update({
+  id: '/wfh',
+  path: '/wfh',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const AdminReportsRoute = AdminReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
@@ -63,6 +72,11 @@ const AdminHomeRoute = AdminHomeRouteImport.update({
   path: '/home',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminExpensesRoute = AdminExpensesRouteImport.update({
+  id: '/expenses',
+  path: '/expenses',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const AdminEmployeesRoute = AdminEmployeesRouteImport.update({
   id: '/employees',
   path: '/employees',
@@ -72,6 +86,11 @@ const AdminAttendanceRoute = AdminAttendanceRouteImport.update({
   id: '/attendance',
   path: '/attendance',
   getParentRoute: () => AdminRouteRoute,
+} as any)
+const AuthenticatedWfhRoute = AuthenticatedWfhRouteImport.update({
+  id: '/wfh',
+  path: '/wfh',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedReportRoute = AuthenticatedReportRouteImport.update({
   id: '/report',
@@ -88,6 +107,11 @@ const AuthenticatedLeaveRoute = AuthenticatedLeaveRouteImport.update({
   path: '/leave',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedExpensesRoute = AuthenticatedExpensesRouteImport.update({
+  id: '/expenses',
+  path: '/expenses',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedCalendarRoute = AuthenticatedCalendarRouteImport.update({
   id: '/calendar',
   path: '/calendar',
@@ -99,27 +123,35 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/calendar': typeof AuthenticatedCalendarRoute
+  '/expenses': typeof AuthenticatedExpensesRoute
   '/leave': typeof AuthenticatedLeaveRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/report': typeof AuthenticatedReportRoute
+  '/wfh': typeof AuthenticatedWfhRoute
   '/admin/attendance': typeof AdminAttendanceRoute
   '/admin/employees': typeof AdminEmployeesRoute
+  '/admin/expenses': typeof AdminExpensesRoute
   '/admin/home': typeof AdminHomeRoute
   '/admin/leave': typeof AdminLeaveRoute
   '/admin/reports': typeof AdminReportsRoute
+  '/admin/wfh': typeof AdminWfhRoute
   '/admin/': typeof AdminIndexRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/calendar': typeof AuthenticatedCalendarRoute
+  '/expenses': typeof AuthenticatedExpensesRoute
   '/leave': typeof AuthenticatedLeaveRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/report': typeof AuthenticatedReportRoute
+  '/wfh': typeof AuthenticatedWfhRoute
   '/admin/attendance': typeof AdminAttendanceRoute
   '/admin/employees': typeof AdminEmployeesRoute
+  '/admin/expenses': typeof AdminExpensesRoute
   '/admin/home': typeof AdminHomeRoute
   '/admin/leave': typeof AdminLeaveRoute
   '/admin/reports': typeof AdminReportsRoute
+  '/admin/wfh': typeof AdminWfhRoute
   '/': typeof AuthenticatedIndexRoute
   '/admin': typeof AdminIndexRoute
 }
@@ -129,14 +161,18 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/calendar': typeof AuthenticatedCalendarRoute
+  '/_authenticated/expenses': typeof AuthenticatedExpensesRoute
   '/_authenticated/leave': typeof AuthenticatedLeaveRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/report': typeof AuthenticatedReportRoute
+  '/_authenticated/wfh': typeof AuthenticatedWfhRoute
   '/admin/attendance': typeof AdminAttendanceRoute
   '/admin/employees': typeof AdminEmployeesRoute
+  '/admin/expenses': typeof AdminExpensesRoute
   '/admin/home': typeof AdminHomeRoute
   '/admin/leave': typeof AdminLeaveRoute
   '/admin/reports': typeof AdminReportsRoute
+  '/admin/wfh': typeof AdminWfhRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/admin/': typeof AdminIndexRoute
 }
@@ -147,27 +183,35 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/calendar'
+    | '/expenses'
     | '/leave'
     | '/profile'
     | '/report'
+    | '/wfh'
     | '/admin/attendance'
     | '/admin/employees'
+    | '/admin/expenses'
     | '/admin/home'
     | '/admin/leave'
     | '/admin/reports'
+    | '/admin/wfh'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
     | '/calendar'
+    | '/expenses'
     | '/leave'
     | '/profile'
     | '/report'
+    | '/wfh'
     | '/admin/attendance'
     | '/admin/employees'
+    | '/admin/expenses'
     | '/admin/home'
     | '/admin/leave'
     | '/admin/reports'
+    | '/admin/wfh'
     | '/'
     | '/admin'
   id:
@@ -176,14 +220,18 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/_authenticated/calendar'
+    | '/_authenticated/expenses'
     | '/_authenticated/leave'
     | '/_authenticated/profile'
     | '/_authenticated/report'
+    | '/_authenticated/wfh'
     | '/admin/attendance'
     | '/admin/employees'
+    | '/admin/expenses'
     | '/admin/home'
     | '/admin/leave'
     | '/admin/reports'
+    | '/admin/wfh'
     | '/_authenticated/'
     | '/admin/'
   fileRoutesById: FileRoutesById
@@ -231,6 +279,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/admin/wfh': {
+      id: '/admin/wfh'
+      path: '/wfh'
+      fullPath: '/admin/wfh'
+      preLoaderRoute: typeof AdminWfhRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/admin/reports': {
       id: '/admin/reports'
       path: '/reports'
@@ -252,6 +307,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminHomeRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/expenses': {
+      id: '/admin/expenses'
+      path: '/expenses'
+      fullPath: '/admin/expenses'
+      preLoaderRoute: typeof AdminExpensesRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/admin/employees': {
       id: '/admin/employees'
       path: '/employees'
@@ -265,6 +327,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/attendance'
       preLoaderRoute: typeof AdminAttendanceRouteImport
       parentRoute: typeof AdminRouteRoute
+    }
+    '/_authenticated/wfh': {
+      id: '/_authenticated/wfh'
+      path: '/wfh'
+      fullPath: '/wfh'
+      preLoaderRoute: typeof AuthenticatedWfhRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/report': {
       id: '/_authenticated/report'
@@ -287,6 +356,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLeaveRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/expenses': {
+      id: '/_authenticated/expenses'
+      path: '/expenses'
+      fullPath: '/expenses'
+      preLoaderRoute: typeof AuthenticatedExpensesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/calendar': {
       id: '/_authenticated/calendar'
       path: '/calendar'
@@ -299,17 +375,21 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedCalendarRoute: typeof AuthenticatedCalendarRoute
+  AuthenticatedExpensesRoute: typeof AuthenticatedExpensesRoute
   AuthenticatedLeaveRoute: typeof AuthenticatedLeaveRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedReportRoute: typeof AuthenticatedReportRoute
+  AuthenticatedWfhRoute: typeof AuthenticatedWfhRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCalendarRoute: AuthenticatedCalendarRoute,
+  AuthenticatedExpensesRoute: AuthenticatedExpensesRoute,
   AuthenticatedLeaveRoute: AuthenticatedLeaveRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedReportRoute: AuthenticatedReportRoute,
+  AuthenticatedWfhRoute: AuthenticatedWfhRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
 }
 
@@ -319,18 +399,22 @@ const AuthenticatedRouteRouteWithChildren =
 interface AdminRouteRouteChildren {
   AdminAttendanceRoute: typeof AdminAttendanceRoute
   AdminEmployeesRoute: typeof AdminEmployeesRoute
+  AdminExpensesRoute: typeof AdminExpensesRoute
   AdminHomeRoute: typeof AdminHomeRoute
   AdminLeaveRoute: typeof AdminLeaveRoute
   AdminReportsRoute: typeof AdminReportsRoute
+  AdminWfhRoute: typeof AdminWfhRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminAttendanceRoute: AdminAttendanceRoute,
   AdminEmployeesRoute: AdminEmployeesRoute,
+  AdminExpensesRoute: AdminExpensesRoute,
   AdminHomeRoute: AdminHomeRoute,
   AdminLeaveRoute: AdminLeaveRoute,
   AdminReportsRoute: AdminReportsRoute,
+  AdminWfhRoute: AdminWfhRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 
