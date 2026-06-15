@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Plus, X, UserPlus, Copy, Users, Search, Eye, EyeOff, Trash2 } from "lucide-react";
-import { addEmployee, getEmployees, deleteEmployee, TEAMS, type Employee } from "@/lib/store";
+import { addEmployee, getEmployees, deleteEmployee, getDepartments, type Employee } from "@/lib/store";
 import { toast } from "sonner";
 import { PunchEditor } from "./-punch-editor";
 import { gsap } from "gsap";
@@ -23,6 +23,10 @@ function EmployeesPage() {
   const { data } = useQuery({
     queryKey: ["admin-employees"],
     queryFn: () => getEmployees(),
+  });
+  const { data: departmentData } = useQuery({
+    queryKey: ["departments"],
+    queryFn: () => getDepartments(),
   });
   const [editPunch, setEditPunch] = useState<{ id: string; name: string } | null>(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -107,7 +111,7 @@ function EmployeesPage() {
           <span>Employee ID</span>
           <span>Name</span>
           <span>Designation</span>
-          <span>Team</span>
+          <span>Department</span>
           <span>Password</span>
           <span className="text-right">Actions</span>
         </div>
@@ -203,7 +207,11 @@ function EmployeesPage() {
 
       {addOpen && (
         <Modal title="Add employee" onClose={() => setAddOpen(false)}>
-          <AddEmployeeForm onClose={() => setAddOpen(false)} onSaved={invalidate} />
+          <AddEmployeeForm
+            departments={departmentData?.departments ?? []}
+            onClose={() => setAddOpen(false)}
+            onSaved={invalidate}
+          />
         </Modal>
       )}
 
@@ -241,11 +249,25 @@ function EmployeesPage() {
   );
 }
 
-function AddEmployeeForm({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+function AddEmployeeForm({
+  departments,
+  onClose,
+  onSaved,
+}: {
+  departments: string[];
+  onClose: () => void;
+  onSaved: () => void;
+}) {
   const [name, setName] = useState("");
   const [designation, setDesignation] = useState("");
-  const [team, setTeam] = useState(TEAMS[0]);
+  const [team, setTeam] = useState(departments[0] ?? "");
   const [created, setCreated] = useState<Employee | null>(null);
+
+  useEffect(() => {
+    if (!team && departments.length > 0) {
+      setTeam(departments[0]);
+    }
+  }, [departments, team]);
 
   const mut = useMutation({
     mutationFn: () => addEmployee(name, designation, team),
@@ -310,13 +332,13 @@ function AddEmployeeForm({ onClose, onSaved }: { onClose: () => void; onSaved: (
       </label>
 
       <label className="block">
-        <span className="text-[10px] uppercase font-bold text-primary tracking-wider">Team</span>
+        <span className="text-[10px] uppercase font-bold text-primary tracking-wider">Department</span>
         <select
           value={team}
           onChange={(e) => setTeam(e.target.value)}
           className="mt-1.5 w-full h-12 px-3 rounded-2xl bg-muted/60 border border-border focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition text-sm"
         >
-          {TEAMS.map((t) => (
+          {departments.map((t) => (
             <option key={t} value={t}>
               {t}
             </option>

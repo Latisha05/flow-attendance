@@ -1,6 +1,18 @@
 import { createFileRoute, Outlet, Link, useLocation } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
-import { Home, Users, FileText, CalendarOff, Clock, ArrowLeft, Hourglass, Laptop, Receipt } from "lucide-react";
+import {
+  Home,
+  Users,
+  FileText,
+  CalendarOff,
+  Clock,
+  ArrowLeft,
+  Hourglass,
+  Laptop,
+  Receipt,
+  Building2,
+  Wallet,
+} from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
 import { gsap } from "gsap";
 
@@ -12,10 +24,12 @@ export const Route = createFileRoute("/admin")({
 const nav = [
   { to: "/admin/home", label: "Home", icon: Home },
   { to: "/admin/employees", label: "Employees", icon: Users },
+  { to: "/admin/departments", label: "Departments", icon: Building2 },
   { to: "/admin/reports", label: "Work reports", icon: FileText },
   { to: "/admin/leave", label: "Leave", icon: CalendarOff },
   { to: "/admin/wfh", label: "WFH requests", icon: Laptop },
   { to: "/admin/expenses", label: "Expenses", icon: Receipt },
+  { to: "/admin/salary", label: "Salary", icon: Wallet },
   { to: "/admin/attendance", label: "Attendance", icon: Clock },
 ];
 

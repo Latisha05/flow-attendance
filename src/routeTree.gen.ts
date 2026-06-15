@@ -15,11 +15,14 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AdminWfhRouteImport } from './routes/admin/wfh'
+import { Route as AdminSalaryRouteImport } from './routes/admin/salary'
+import { Route as AdminRosterRouteImport } from './routes/admin/roster'
 import { Route as AdminReportsRouteImport } from './routes/admin/reports'
 import { Route as AdminLeaveRouteImport } from './routes/admin/leave'
 import { Route as AdminHomeRouteImport } from './routes/admin/home'
 import { Route as AdminExpensesRouteImport } from './routes/admin/expenses'
 import { Route as AdminEmployeesRouteImport } from './routes/admin/employees'
+import { Route as AdminDepartmentsRouteImport } from './routes/admin/departments'
 import { Route as AdminAttendanceRouteImport } from './routes/admin/attendance'
 import { Route as AuthenticatedWfhRouteImport } from './routes/_authenticated/wfh'
 import { Route as AuthenticatedReportRouteImport } from './routes/_authenticated/report'
@@ -57,6 +60,16 @@ const AdminWfhRoute = AdminWfhRouteImport.update({
   path: '/wfh',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminSalaryRoute = AdminSalaryRouteImport.update({
+  id: '/salary',
+  path: '/salary',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminRosterRoute = AdminRosterRouteImport.update({
+  id: '/roster',
+  path: '/roster',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const AdminReportsRoute = AdminReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
@@ -80,6 +93,11 @@ const AdminExpensesRoute = AdminExpensesRouteImport.update({
 const AdminEmployeesRoute = AdminEmployeesRouteImport.update({
   id: '/employees',
   path: '/employees',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminDepartmentsRoute = AdminDepartmentsRouteImport.update({
+  id: '/departments',
+  path: '/departments',
   getParentRoute: () => AdminRouteRoute,
 } as any)
 const AdminAttendanceRoute = AdminAttendanceRouteImport.update({
@@ -129,11 +147,14 @@ export interface FileRoutesByFullPath {
   '/report': typeof AuthenticatedReportRoute
   '/wfh': typeof AuthenticatedWfhRoute
   '/admin/attendance': typeof AdminAttendanceRoute
+  '/admin/departments': typeof AdminDepartmentsRoute
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/expenses': typeof AdminExpensesRoute
   '/admin/home': typeof AdminHomeRoute
   '/admin/leave': typeof AdminLeaveRoute
   '/admin/reports': typeof AdminReportsRoute
+  '/admin/roster': typeof AdminRosterRoute
+  '/admin/salary': typeof AdminSalaryRoute
   '/admin/wfh': typeof AdminWfhRoute
   '/admin/': typeof AdminIndexRoute
 }
@@ -146,11 +167,14 @@ export interface FileRoutesByTo {
   '/report': typeof AuthenticatedReportRoute
   '/wfh': typeof AuthenticatedWfhRoute
   '/admin/attendance': typeof AdminAttendanceRoute
+  '/admin/departments': typeof AdminDepartmentsRoute
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/expenses': typeof AdminExpensesRoute
   '/admin/home': typeof AdminHomeRoute
   '/admin/leave': typeof AdminLeaveRoute
   '/admin/reports': typeof AdminReportsRoute
+  '/admin/roster': typeof AdminRosterRoute
+  '/admin/salary': typeof AdminSalaryRoute
   '/admin/wfh': typeof AdminWfhRoute
   '/': typeof AuthenticatedIndexRoute
   '/admin': typeof AdminIndexRoute
@@ -167,11 +191,14 @@ export interface FileRoutesById {
   '/_authenticated/report': typeof AuthenticatedReportRoute
   '/_authenticated/wfh': typeof AuthenticatedWfhRoute
   '/admin/attendance': typeof AdminAttendanceRoute
+  '/admin/departments': typeof AdminDepartmentsRoute
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/expenses': typeof AdminExpensesRoute
   '/admin/home': typeof AdminHomeRoute
   '/admin/leave': typeof AdminLeaveRoute
   '/admin/reports': typeof AdminReportsRoute
+  '/admin/roster': typeof AdminRosterRoute
+  '/admin/salary': typeof AdminSalaryRoute
   '/admin/wfh': typeof AdminWfhRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/admin/': typeof AdminIndexRoute
@@ -189,11 +216,14 @@ export interface FileRouteTypes {
     | '/report'
     | '/wfh'
     | '/admin/attendance'
+    | '/admin/departments'
     | '/admin/employees'
     | '/admin/expenses'
     | '/admin/home'
     | '/admin/leave'
     | '/admin/reports'
+    | '/admin/roster'
+    | '/admin/salary'
     | '/admin/wfh'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
@@ -206,11 +236,14 @@ export interface FileRouteTypes {
     | '/report'
     | '/wfh'
     | '/admin/attendance'
+    | '/admin/departments'
     | '/admin/employees'
     | '/admin/expenses'
     | '/admin/home'
     | '/admin/leave'
     | '/admin/reports'
+    | '/admin/roster'
+    | '/admin/salary'
     | '/admin/wfh'
     | '/'
     | '/admin'
@@ -226,11 +259,14 @@ export interface FileRouteTypes {
     | '/_authenticated/report'
     | '/_authenticated/wfh'
     | '/admin/attendance'
+    | '/admin/departments'
     | '/admin/employees'
     | '/admin/expenses'
     | '/admin/home'
     | '/admin/leave'
     | '/admin/reports'
+    | '/admin/roster'
+    | '/admin/salary'
     | '/admin/wfh'
     | '/_authenticated/'
     | '/admin/'
@@ -286,6 +322,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminWfhRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/salary': {
+      id: '/admin/salary'
+      path: '/salary'
+      fullPath: '/admin/salary'
+      preLoaderRoute: typeof AdminSalaryRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/roster': {
+      id: '/admin/roster'
+      path: '/roster'
+      fullPath: '/admin/roster'
+      preLoaderRoute: typeof AdminRosterRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/admin/reports': {
       id: '/admin/reports'
       path: '/reports'
@@ -319,6 +369,13 @@ declare module '@tanstack/react-router' {
       path: '/employees'
       fullPath: '/admin/employees'
       preLoaderRoute: typeof AdminEmployeesRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/departments': {
+      id: '/admin/departments'
+      path: '/departments'
+      fullPath: '/admin/departments'
+      preLoaderRoute: typeof AdminDepartmentsRouteImport
       parentRoute: typeof AdminRouteRoute
     }
     '/admin/attendance': {
@@ -398,22 +455,28 @@ const AuthenticatedRouteRouteWithChildren =
 
 interface AdminRouteRouteChildren {
   AdminAttendanceRoute: typeof AdminAttendanceRoute
+  AdminDepartmentsRoute: typeof AdminDepartmentsRoute
   AdminEmployeesRoute: typeof AdminEmployeesRoute
   AdminExpensesRoute: typeof AdminExpensesRoute
   AdminHomeRoute: typeof AdminHomeRoute
   AdminLeaveRoute: typeof AdminLeaveRoute
   AdminReportsRoute: typeof AdminReportsRoute
+  AdminRosterRoute: typeof AdminRosterRoute
+  AdminSalaryRoute: typeof AdminSalaryRoute
   AdminWfhRoute: typeof AdminWfhRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminAttendanceRoute: AdminAttendanceRoute,
+  AdminDepartmentsRoute: AdminDepartmentsRoute,
   AdminEmployeesRoute: AdminEmployeesRoute,
   AdminExpensesRoute: AdminExpensesRoute,
   AdminHomeRoute: AdminHomeRoute,
   AdminLeaveRoute: AdminLeaveRoute,
   AdminReportsRoute: AdminReportsRoute,
+  AdminRosterRoute: AdminRosterRoute,
+  AdminSalaryRoute: AdminSalaryRoute,
   AdminWfhRoute: AdminWfhRoute,
   AdminIndexRoute: AdminIndexRoute,
 }

@@ -138,12 +138,14 @@ function HomePage() {
 
   const greeting = (() => {
     const h = new Date().getHours();
-    if (h < 12) return "Good morning";
-    if (h < 17) return "Good afternoon";
-    return "Good evening";
+    if (h < 12) return "Good Morning";
+    if (h < 17) return "Good Afternoon";
+    return "Good Evening";
   })();
 
   const fullName = user?.full_name ?? "";
+  const displayName = user?.display_name?.trim() || "";
+  const visibleName = displayName || fullName;
   const initials = fullName
     .split(" ").filter(Boolean).slice(0, 2)
     .map((s) => s[0]?.toUpperCase()).join("");
@@ -157,7 +159,7 @@ function HomePage() {
             {new Date().toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}
           </span>
           <h1 className="font-display text-2xl font-extrabold mt-2">
-            {greeting}, {(fullName || "there").split(" ")[0]}
+            {greeting}, {(visibleName || "there").split(" ")[0]}
           </h1>
           {(user?.designation || user?.team) && (
             <p className="text-xs text-muted-foreground font-medium mt-0.5">

@@ -10,11 +10,13 @@ export type User = {
   id: string; // matches the Employee record id
   emp_code: string;
   full_name: string;
+  display_name?: string;
   designation: string;
   team: string;
 };
 
 const STORAGE_KEY = "flow.auth.user";
+const DISPLAY_NAME_KEY = "flow.auth.displayNames";
 const listeners = new Set<() => void>();
 
 function emit() {
@@ -38,6 +40,21 @@ function persist(user: User | null) {
   emit();
 }
 
+function readDisplayNames() {
+  if (typeof localStorage === "undefined") return {} as Record<string, string>;
+  try {
+    const raw = localStorage.getItem(DISPLAY_NAME_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, string>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeDisplayNames(displayNames: Record<string, string>) {
+  if (typeof localStorage === "undefined") return;
+  localStorage.setItem(DISPLAY_NAME_KEY, JSON.stringify(displayNames));
+}
+
 import { findEmployeeByCredentials } from "./store";
 
 /**
@@ -47,15 +64,35 @@ import { findEmployeeByCredentials } from "./store";
  */
 export async function signIn(empCode: string, password: string): Promise<User> {
   const emp = await findEmployeeByCredentials(empCode, password);
+  const displayNames = readDisplayNames();
   const user: User = {
     id: emp.id,
     emp_code: emp.emp_code,
     full_name: emp.full_name,
+    display_name: displayNames[emp.id] ?? "",
     designation: emp.designation,
     team: emp.team,
   };
   persist(user);
   return user;
+}
+
+export function updateDisplayName(displayName: string) {
+  const current = getCurrentUser();
+  if (!current) throw new Error("You need to sign in again");
+
+  const trimmed = displayName.trim().slice(0, 40);
+  const displayNames = readDisplayNames();
+  if (trimmed) displayNames[current.id] = trimmed;
+  else delete displayNames[current.id];
+  writeDisplayNames(displayNames);
+
+  const nextUser: User = {
+    ...current,
+    display_name: trimmed,
+  };
+  persist(nextUser);
+  return nextUser;
 }
 
 export function signOut() {

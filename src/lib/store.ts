@@ -21,6 +21,7 @@ export type LeaveRequest = {
   start_date: string;
   end_date: string;
   days: number;
+  use_paid_leave?: boolean;
   reason: string;
   status: "pending" | "approved" | "declined";
   created_at: string;
@@ -57,31 +58,40 @@ export type Expense = {
 
 export type Employee = {
   id: string;
-  emp_code: string; // auto-generated login ID, e.g. EMP-0001
-  password: string; // default password set on creation
+  emp_code: string;
+  password: string;
   full_name: string;
   designation: string;
   team: string;
+  paid_leave_balance?: number;
   created_at: string;
 };
 
 export const EXPENSE_CATEGORIES = ["Travel", "Food", "Equipment", "Shoot", "Other"];
 
+const TEAM_NAME_MAP: Record<string, string> = {
+  Studio: "Designing",
+  Buzz: "Social Media",
+  "People Ops": "Administration & HR",
+  Growth: "Marketing",
+  Outreach: "Telecalling",
+};
+
+function normalizeTeamName(team: string) {
+  return TEAM_NAME_MAP[team] ?? team;
+}
+
 // Team list — selectable when adding an employee.
-export const TEAMS = [
+const DEFAULT_DEPARTMENTS = [
   "Tech", // was IT
-  "Studio", // was Designing
-  "Growth", // was Marketing
-  "Buzz", // was Social Media
-  "Outreach", // was Telecalling
+  "Designing",
+  "Marketing",
+  "Social Media",
+  "Telecalling",
   "Production",
   "Fleet", // was Driver
-  "People Ops", // was HR / Admin
+  "Administration & HR",
 ];
-
-// Default password assigned to every new employee. They log in with their
-// Employee ID + this until a real auth backend (Firestore) adds password reset.
-export const DEFAULT_PASSWORD = "flow@1234";
 
 type DB = {
   attendance: Attendance[];
@@ -90,7 +100,7 @@ type DB = {
   wfh: WfhRequest[];
   expenses: Expense[];
   employees: Employee[];
-  seq: number; // running counter for emp_code generation
+  departments: string[];
   profile: { pl_balance: number };
 };
 
@@ -104,13 +114,29 @@ function read(): DB {
     wfh: [],
     expenses: [],
     employees: [],
-    seq: 0,
+    departments: DEFAULT_DEPARTMENTS.slice(),
     profile: { pl_balance: 1 },
   };
   if (typeof localStorage === "undefined") return empty;
   try {
     const raw = localStorage.getItem(KEY);
-    return raw ? { ...empty, ...JSON.parse(raw) } : empty;
+    if (!raw) return empty;
+    const parsed = { ...empty, ...JSON.parse(raw) } as DB;
+    parsed.employees = (parsed.employees ?? []).map((employee) => ({
+      ...employee,
+      team: normalizeTeamName(employee.team),
+    }));
+    const existingDepartments = Array.isArray((parsed as { departments?: string[] }).departments)
+      ? parsed.departments
+      : [];
+    parsed.departments = Array.from(
+      new Set(
+        [...DEFAULT_DEPARTMENTS, ...existingDepartments, ...parsed.employees.map((employee) => employee.team)]
+          .map((department) => normalizeTeamName((department ?? "").trim()))
+          .filter(Boolean),
+      ),
+    );
+    return parsed;
   } catch {
     return empty;
   }
@@ -123,6 +149,72 @@ function write(db: DB) {
 
 function id() {
   return globalThis.crypto?.randomUUID?.() ?? `id_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function randomIndex(max: number) {
+  if (globalThis.crypto?.getRandomValues) {
+    const values = new Uint32Array(1);
+    globalThis.crypto.getRandomValues(values);
+    return values[0] % max;
+  }
+  return Math.floor(Math.random() * max);
+}
+
+function randomString(length: number, alphabet: string) {
+  return Array.from({ length }, () => alphabet[randomIndex(alphabet.length)]).join("");
+}
+
+function generateEmployeeCode(db: DB) {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "";
+  do {
+    code = `EMP-${randomString(6, alphabet)}`;
+  } while (db.employees.some((employee) => employee.emp_code === code));
+  return code;
+}
+
+function generatePassword() {
+  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const lower = "abcdefghijkmnopqrstuvwxyz";
+  const digits = "23456789";
+  const symbols = "!@#$%";
+  const all = upper + lower + digits + symbols;
+  const chars = [
+    upper[randomIndex(upper.length)],
+    lower[randomIndex(lower.length)],
+    digits[randomIndex(digits.length)],
+    symbols[randomIndex(symbols.length)],
+    ...randomString(8, all),
+  ];
+
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = randomIndex(i + 1);
+    [chars[i], chars[j]] = [chars[j], chars[i]];
+  }
+  return chars.join("");
+}
+
+function generateEmployeePassword(db: DB) {
+  let password = "";
+  do {
+    password = generatePassword();
+  } while (db.employees.some((employee) => employee.password === password));
+  return password;
+}
+
+function paidLeaveBalanceFor(db: DB, userId: string) {
+  const employee = db.employees.find((entry) => entry.id === userId);
+  if (employee?.paid_leave_balance != null) return employee.paid_leave_balance;
+
+  const used = db.leave
+    .filter(
+      (request) =>
+        request.user_id === userId &&
+        request.status === "approved" &&
+        request.use_paid_leave !== false,
+    )
+    .reduce((total, request) => total + request.days, 0);
+  return Math.max(0, 1 - used);
 }
 
 function startOfToday() {
@@ -159,7 +251,7 @@ export async function getDashboard(userId: string) {
   weekStart.setDate(weekStart.getDate() - 6);
   const week = mine.filter((a) => new Date(a.punch_in_at).getTime() >= weekStart.getTime());
   return {
-    profile: { full_name: "", pl_balance: db.profile.pl_balance },
+    profile: { full_name: "", pl_balance: paidLeaveBalanceFor(db, userId) },
     open,
     today,
     week,
@@ -219,15 +311,24 @@ export async function getLeaveData(userId: string) {
   const requests = db.leave
     .filter((l) => l.user_id === userId)
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
-  return { balance: db.profile.pl_balance, requests };
+  return { balance: paidLeaveBalanceFor(db, userId), requests };
 }
 
-export async function requestLeave(userId: string, start_date: string, end_date: string, reason: string) {
+export async function requestLeave(
+  userId: string,
+  start_date: string,
+  end_date: string,
+  reason: string,
+  usePaidLeave: boolean,
+) {
   const db = read();
   const days = workingDaysBetween(start_date, end_date);
   if (days < 1) throw new Error("Select a valid date range");
-  if (days > db.profile.pl_balance) {
-    throw new Error(`Not enough leave balance (${db.profile.pl_balance} PL available, ${days} requested)`);
+  const balance = paidLeaveBalanceFor(db, userId);
+  if (usePaidLeave && days > balance) {
+    throw new Error(
+      `Only ${balance} paid leave${balance === 1 ? "" : "s"} remaining. Turn off paid leave to continue.`,
+    );
   }
   db.leave.push({
     id: id(),
@@ -235,6 +336,7 @@ export async function requestLeave(userId: string, start_date: string, end_date:
     start_date,
     end_date,
     days,
+    use_paid_leave: usePaidLeave,
     reason: reason.slice(0, 500),
     status: "pending",
     created_at: new Date().toISOString(),
@@ -248,8 +350,24 @@ export async function decideLeave(leaveId: string, approve: boolean) {
   const req = db.leave.find((l) => l.id === leaveId);
   if (!req) throw new Error("Not found");
   if (req.status !== "pending") throw new Error("Already decided");
+  const balanceBeforeApproval = paidLeaveBalanceFor(db, req.user_id);
+  if (
+    approve &&
+    req.use_paid_leave !== false &&
+    req.days > balanceBeforeApproval
+  ) {
+    throw new Error("This employee no longer has enough paid leave remaining");
+  }
   req.status = approve ? "approved" : "declined";
-  if (approve) db.profile.pl_balance = Math.max(0, db.profile.pl_balance - req.days);
+  if (approve && req.use_paid_leave !== false) {
+    const employee = db.employees.find((entry) => entry.id === req.user_id);
+    if (employee) {
+      employee.paid_leave_balance = Math.max(
+        0,
+        balanceBeforeApproval - req.days,
+      );
+    }
+  }
   write(db);
   return { ok: true };
 }
@@ -318,21 +436,79 @@ export async function getEmployees() {
   return { employees: db.employees.slice().sort((a, b) => a.full_name.localeCompare(b.full_name)) };
 }
 
+export async function getDepartments() {
+  const db = read();
+  return { departments: db.departments.slice().sort((a, b) => a.localeCompare(b)) };
+}
+
 export async function addEmployee(full_name: string, designation: string, team: string) {
   const db = read();
-  db.seq = (db.seq ?? 0) + 1;
+  const normalizedTeam = normalizeTeamName(team.trim());
+  if (normalizedTeam && !db.departments.includes(normalizedTeam)) {
+    db.departments.push(normalizedTeam);
+  }
   const emp: Employee = {
     id: id(),
-    emp_code: `EMP-${String(db.seq).padStart(4, "0")}`, // EMP-0001, EMP-0002, …
-    password: DEFAULT_PASSWORD,
+    emp_code: generateEmployeeCode(db),
+    password: generateEmployeePassword(db),
     full_name: full_name.trim(),
     designation: designation.trim(),
-    team,
+    team: normalizedTeam,
+    paid_leave_balance: 1,
     created_at: new Date().toISOString(),
   };
   db.employees.push(emp);
   write(db);
   return emp;
+}
+
+export async function addDepartment(name: string) {
+  const db = read();
+  const department = normalizeTeamName(name.trim());
+  if (!department) throw new Error("Department name is required");
+  if (db.departments.some((entry) => entry.toLowerCase() === department.toLowerCase())) {
+    throw new Error("Department already exists");
+  }
+  db.departments.push(department);
+  write(db);
+  return { ok: true };
+}
+
+export async function renameDepartment(currentName: string, nextName: string) {
+  const db = read();
+  const current = normalizeTeamName(currentName.trim());
+  const next = normalizeTeamName(nextName.trim());
+  if (!current) throw new Error("Department not found");
+  if (!next) throw new Error("Department name is required");
+  const index = db.departments.findIndex((entry) => entry.toLowerCase() === current.toLowerCase());
+  if (index === -1) throw new Error("Department not found");
+  const duplicate = db.departments.some(
+    (entry, entryIndex) => entryIndex !== index && entry.toLowerCase() === next.toLowerCase(),
+  );
+  if (duplicate) throw new Error("Department already exists");
+  db.departments[index] = next;
+  db.employees = db.employees.map((employee) =>
+    employee.team.toLowerCase() === current.toLowerCase()
+      ? { ...employee, team: next }
+      : employee,
+  );
+  write(db);
+  return { ok: true };
+}
+
+export async function deleteDepartment(name: string) {
+  const db = read();
+  const department = normalizeTeamName(name.trim());
+  const exists = db.departments.some((entry) => entry.toLowerCase() === department.toLowerCase());
+  if (!exists) throw new Error("Department not found");
+  db.departments = db.departments.filter((entry) => entry.toLowerCase() !== department.toLowerCase());
+  db.employees = db.employees.map((employee) =>
+    employee.team.toLowerCase() === department.toLowerCase()
+      ? { ...employee, team: "" }
+      : employee,
+  );
+  write(db);
+  return { ok: true };
 }
 
 export async function deleteEmployee(employeeId: string) {

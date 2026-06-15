@@ -47,6 +47,9 @@ function AdminLeavePage() {
           <div key={p.id} className="bg-white border border-border rounded-2xl p-5 flex flex-wrap items-center gap-4" style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
             <div className="flex-1 min-w-[200px]">
               <p className="font-bold text-sm">{p.name}</p>
+              <p className="text-xs font-semibold text-primary mt-0.5">
+                {p.use_paid_leave === false ? "Unpaid leave" : "Paid leave"}
+              </p>
               <p className="text-[11px] text-muted-foreground uppercase tracking-wider mt-0.5">
                 {p.days} day{p.days > 1 ? "s" : ""} ·{" "}
                 {new Date(p.start_date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}

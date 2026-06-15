@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { Plus, X, Calendar, CheckCircle2, Clock, XCircle } from "lucide-react";
 import { getLeaveData, requestLeave } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { gsap } from "gsap";
 
@@ -45,6 +46,7 @@ function LeavePage() {
   const [start, setStart] = useState(today);
   const [end, setEnd] = useState(today);
   const [reason, setReason] = useState("");
+  const [usePaidLeave, setUsePaidLeave] = useState(false);
 
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -60,18 +62,19 @@ function LeavePage() {
   }, [data?.requests?.length]);
 
   const mut = useMutation({
-    mutationFn: () => requestLeave(userId, start, end, reason),
+    mutationFn: () => requestLeave(userId, start, end, reason, usePaidLeave),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["leave", userId] });
       setOpen(false);
       setReason("");
+      setUsePaidLeave(false);
       toast.success("Leave requested");
     },
     onError: (e: any) => toast.error(e.message ?? "Failed"),
   });
 
   const balance = data?.balance ?? 0;
-  const balancePct = Math.min(100, balance * 100);
+  const hasPaidLeave = balance > 0;
 
   return (
     <div className="px-6 pt-12 pb-28">
@@ -79,42 +82,37 @@ function LeavePage() {
 
       {/* Balance hero card — light pastel gradient */}
       <div
-        className="rounded-3xl p-6 mb-8 relative overflow-hidden"
-        style={{ background: "linear-gradient(135deg, hsl(245 60% 95%), hsl(258 60% 92%))" }}
+        className={`rounded-3xl p-6 mb-8 relative overflow-hidden border ${
+          hasPaidLeave
+            ? "border-primary/10"
+            : "border-border bg-muted/50"
+        }`}
+        style={
+          hasPaidLeave
+            ? { background: "linear-gradient(135deg, hsl(245 60% 95%), hsl(258 60% 92%))" }
+            : undefined
+        }
       >
-        {/* Subtle decorative blobs */}
-        <div className="absolute -top-8 -right-8 size-32 rounded-full bg-primary/10 blur-2xl pointer-events-none" />
-        <div className="absolute bottom-0 left-4 size-20 rounded-full bg-accent/10 blur-xl pointer-events-none" />
-
-        <div className="relative flex justify-between items-start mb-5">
-          <div>
-            <p className="text-[10px] uppercase font-bold text-primary/60 tracking-wider">Balance remaining</p>
-            <h3 className="font-display mt-1">
-              <span className="text-5xl font-extrabold text-primary">{balance.toFixed(1)}</span>
-              {" "}
-              <span className="text-xl font-semibold text-primary/50">PL</span>
-            </h3>
-          </div>
+        <div className="relative flex justify-between items-center">
+          <p
+            className={`font-display text-xl font-extrabold ${
+              hasPaidLeave ? "text-primary" : "text-muted-foreground"
+            }`}
+          >
+            {balance} Paid leave{balance === 1 ? "" : "s"} remaining
+          </p>
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={() => setOpen(true)}
-            className="size-12 rounded-2xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/30 hover:bg-primary/90 transition-colors"
+            className={`size-12 rounded-2xl flex items-center justify-center transition-colors ${
+              hasPaidLeave
+                ? "bg-primary text-white shadow-lg shadow-primary/30 hover:bg-primary/90"
+                : "bg-muted-foreground/15 text-muted-foreground hover:bg-muted-foreground/20"
+            }`}
           >
             <Plus className="size-5" />
           </motion.button>
         </div>
-
-        {/* Progress bar */}
-        <div className="relative w-full h-2 bg-primary/10 rounded-full overflow-hidden">
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${balancePct}%` }}
-            transition={{ duration: 0.7, ease: [0.32, 0.72, 0, 1.1] }}
-            className="h-full rounded-full"
-            style={{ background: "linear-gradient(to right, hsl(160 80% 45%), hsl(170 75% 40%))" }}
-          />
-        </div>
-        <p className="text-[10px] text-primary/50 font-medium mt-2">{balance.toFixed(1)} days remaining</p>
       </div>
 
       {/* History */}
@@ -144,7 +142,9 @@ function LeavePage() {
                   <StatusIcon className="size-4 text-muted-foreground" />
                 </div>
                 <div>
-                  <p className="font-bold capitalize text-sm">Paid leave</p>
+                  <p className="font-bold capitalize text-sm">
+                    {r.use_paid_leave === false ? "Unpaid leave" : "Paid leave"}
+                  </p>
                   <p className="text-xs text-muted-foreground">
                     {new Date(r.start_date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                     {r.start_date !== r.end_date &&
@@ -233,6 +233,26 @@ function LeavePage() {
                     className="mt-1.5 w-full px-3 py-3 rounded-2xl bg-muted/60 border border-border resize-none focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition text-sm"
                   />
                 </label>
+                <div
+                  className={`flex items-center justify-between gap-4 rounded-2xl border p-4 ${
+                    hasPaidLeave ? "border-primary/15 bg-primary/[0.04]" : "border-border bg-muted/50"
+                  }`}
+                >
+                  <div>
+                    <p className="text-sm font-bold">Use paid leave</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {hasPaidLeave
+                        ? `${balance} paid leave${balance === 1 ? "" : "s"} available`
+                        : "No paid leaves remaining"}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={usePaidLeave}
+                    onCheckedChange={setUsePaidLeave}
+                    disabled={!hasPaidLeave}
+                    aria-label="Use paid leave"
+                  />
+                </div>
                 <motion.button
                   whileTap={{ scale: 0.97 }}
                   disabled={mut.isPending}

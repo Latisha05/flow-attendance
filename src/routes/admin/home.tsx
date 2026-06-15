@@ -1,21 +1,15 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Users, CalendarOff, Home as HomeIcon, UserX, Receipt, FileText } from "lucide-react";
-import { getDashboardByDate } from "@/lib/store";
+import { ArrowRight, Building2, CalendarOff, FileText, Home as HomeIcon, Receipt, UserX, Users } from "lucide-react";
+import { getDashboardByDate, getDepartments } from "@/lib/store";
 
 export const Route = createFileRoute("/admin/home")({
-  head: () => ({ meta: [{ title: "Dashboard — Admin" }] }),
+  head: () => ({ meta: [{ title: "Dashboard - Admin" }] }),
   component: AdminHomePage,
 });
 
-const inr = (n: number) => `₹${n.toLocaleString("en-IN")}`;
-
-const STATUS_BADGE = {
-  approved: "bg-emerald-50 text-emerald-700 border border-emerald-200",
-  pending: "bg-amber-50 text-amber-700 border border-amber-200",
-  declined: "bg-rose-50 text-rose-700 border border-rose-200",
-} as const;
+const inr = (n: number) => `Rs ${n.toLocaleString("en-IN")}`;
 
 function AdminHomePage() {
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
@@ -23,155 +17,177 @@ function AdminHomePage() {
     queryKey: ["admin-dashboard", date],
     queryFn: () => getDashboardByDate(date),
   });
+  const { data: departmentData } = useQuery({
+    queryKey: ["departments"],
+    queryFn: () => getDepartments(),
+  });
 
-  const c = data?.counts;
-  const expenseTotal = (data?.expenses ?? []).reduce((a, x) => a + x.amount, 0);
+  const counts = data?.counts;
+  const leavePending = (data?.leaveRequests ?? []).filter((request) => request.status === "pending").length;
+  const wfhPending = (data?.wfhRequests ?? []).filter((request) => request.status === "pending").length;
+  const expensePending = (data?.expenses ?? []).filter((expense) => expense.status === "pending").length;
+  const pendingActions = leavePending + wfhPending + expensePending;
+  const expenseTotal = (data?.expenses ?? []).reduce((total, expense) => total + expense.amount, 0);
 
   return (
-    <div>
-      {/* Header + date picker */}
-      <div className="flex flex-wrap items-end justify-between gap-4 mb-7">
+    <div className="space-y-8">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-3xl font-extrabold">Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {new Date(date + "T00:00:00").toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+          <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary/60">Admin overview</p>
+          <h1 className="font-display text-4xl font-extrabold tracking-tight mt-2">Dashboard</h1>
+          <p className="text-sm text-muted-foreground mt-2">
+            {new Date(date + "T00:00:00").toLocaleDateString(undefined, {
+              weekday: "long",
+              month: "long",
+              day: "numeric",
+              year: "numeric",
+            })}
           </p>
         </div>
         <label className="block">
-          <span className="text-[10px] uppercase font-bold text-primary tracking-widest">Select date</span>
+          <span className="text-[10px] uppercase font-bold text-primary tracking-[0.18em]">Select date</span>
           <input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="mt-1 block h-11 px-3 rounded-xl bg-white border border-border focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition"
+            className="mt-2 block h-12 min-w-52 rounded-2xl border border-border bg-white px-4 text-sm shadow-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition"
           />
         </label>
       </div>
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <StatCard label="Present" value={c?.present ?? 0} icon={Users} tint="text-emerald-600 bg-emerald-50" />
-        <StatCard label="On leave" value={c?.onLeave ?? 0} icon={CalendarOff} tint="text-amber-600 bg-amber-50" />
-        <StatCard label="Work from home" value={c?.wfh ?? 0} icon={HomeIcon} tint="text-primary bg-primary/10" />
-        <StatCard label="Absent" value={c?.absent ?? 0} icon={UserX} tint="text-rose-600 bg-rose-50" />
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
+        <StatCard label="Present" value={counts?.present ?? 0} note="Checked in" icon={Users} tint="bg-emerald-50 text-emerald-700" />
+        <StatCard label="On leave" value={counts?.onLeave ?? 0} note="Approved leave" icon={CalendarOff} tint="bg-amber-50 text-amber-700" />
+        <StatCard label="WFH" value={counts?.wfh ?? 0} note="Remote today" icon={HomeIcon} tint="bg-primary/10 text-primary" />
+        <StatCard label="Absent" value={counts?.absent ?? 0} note="Needs follow-up" icon={UserX} tint="bg-rose-50 text-rose-700" />
+        <StatCard label="Pending actions" value={pendingActions} note="Approvals waiting" icon={FileText} tint="bg-slate-100 text-slate-700" />
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
-        {/* Present */}
-        <Section title="Present employees" icon={Users} count={data?.present.length ?? 0}>
-          {(data?.present ?? []).map((p) => (
-            <Row key={p.id} name={p.name} sub={p.team} />
-          ))}
-          {(data?.present ?? []).length === 0 && <Empty text="Nobody marked present." />}
-        </Section>
+      <div className="rounded-[28px] border border-border bg-white p-6 shadow-[0_18px_50px_rgba(15,23,42,0.06)]">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-display text-2xl font-extrabold tracking-tight">Detailed views</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Open a focused page for each list instead of stacking everything here.
+            </p>
+          </div>
+          <span className="rounded-full bg-muted px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+            Stitch reference: clean dashboard drilldowns
+          </span>
+        </div>
 
-        {/* On leave */}
-        <Section title="On leave" icon={CalendarOff} count={data?.onLeave.length ?? 0}>
-          {(data?.onLeave ?? []).map((p) => (
-            <Row key={p.id} name={p.name} />
-          ))}
-          {(data?.onLeave ?? []).length === 0 && <Empty text="Nobody on leave." />}
-        </Section>
-
-        {/* Leave requests submitted that day */}
-        <Section title="Leave requests" icon={FileText} count={data?.leaveRequests.length ?? 0}>
-          {(data?.leaveRequests ?? []).map((r) => (
-            <Row
-              key={r.id}
-              name={r.name}
-              sub={`${r.days} day${r.days > 1 ? "s" : ""}`}
-              badge={r.status}
-            />
-          ))}
-          {(data?.leaveRequests ?? []).length === 0 && <Empty text="No leave requests." />}
-        </Section>
-
-        {/* WFH requests submitted that day */}
-        <Section title="WFH requests" icon={HomeIcon} count={data?.wfhRequests.length ?? 0}>
-          {(data?.wfhRequests ?? []).map((r) => (
-            <Row
-              key={r.id}
-              name={r.name}
-              sub={new Date(r.date + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-              badge={r.status}
-            />
-          ))}
-          {(data?.wfhRequests ?? []).length === 0 && <Empty text="No WFH requests." />}
-        </Section>
-
-        {/* Expenses */}
-        <Section title="Expenses" icon={Receipt} count={data?.expenses.length ?? 0} extra={expenseTotal > 0 ? inr(expenseTotal) : undefined}>
-          {(data?.expenses ?? []).map((x) => (
-            <Row
-              key={x.id}
-              name={x.name}
-              sub={`${inr(x.amount)} · ${x.category}`}
-              badge={x.status}
-            />
-          ))}
-          {(data?.expenses ?? []).length === 0 && <Empty text="No expenses." />}
-        </Section>
+        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <QuickLinkCard
+            to="/admin/roster"
+            title="Daily roster"
+            value={`${counts?.present ?? 0}/${counts?.total ?? 0}`}
+            description="Present staff out of total employees"
+            detail={`On leave ${counts?.onLeave ?? 0}  |  WFH ${counts?.wfh ?? 0}  |  Absent ${counts?.absent ?? 0}`}
+            icon={Users}
+          />
+          <QuickLinkCard
+            to="/admin/leave"
+            title="Leave approvals"
+            value={String(data?.leaveRequests.length ?? 0)}
+            description="Requests submitted on the selected date"
+            detail={`${leavePending} pending approval`}
+            icon={CalendarOff}
+          />
+          <QuickLinkCard
+            to="/admin/wfh"
+            title="WFH requests"
+            value={String(data?.wfhRequests.length ?? 0)}
+            description="Remote work requests for this date"
+            detail={`${wfhPending} pending approval`}
+            icon={HomeIcon}
+          />
+          <QuickLinkCard
+            to="/admin/expenses"
+            title="Expense claims"
+            value={expenseTotal > 0 ? inr(expenseTotal) : "Rs 0"}
+            description="Total claimed amount for the selected date"
+            detail={`${expensePending} pending  |  ${data?.expenses.length ?? 0} claims`}
+            icon={Receipt}
+          />
+          <QuickLinkCard
+            to="/admin/employees"
+            title="Employees"
+            value={String(counts?.total ?? 0)}
+            description="Team directory and attendance corrections"
+            detail="Open the full employee list"
+            icon={Users}
+          />
+          <QuickLinkCard
+            to="/admin/departments"
+            title="Departments"
+            value={String(departmentData?.departments.length ?? 0)}
+            description="Manage department names and member lists"
+            detail="Changes update the employee dropdown automatically"
+            icon={Building2}
+          />
+        </div>
       </div>
     </div>
   );
 }
 
-function StatCard({ label, value, icon: Icon, tint }: { label: string; value: number; icon: typeof Users; tint: string }) {
-  return (
-    <div className="bg-white border border-border rounded-2xl p-5" style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.05)" }}>
-      <div className={`size-9 rounded-xl flex items-center justify-center mb-3 ${tint}`}>
-        <Icon className="size-4" />
-      </div>
-      <p className="font-display text-3xl font-extrabold">{value}</p>
-      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mt-1">{label}</p>
-    </div>
-  );
-}
-
-function Section({
-  title,
+function StatCard({
+  label,
+  value,
+  note,
   icon: Icon,
-  count,
-  extra,
-  children,
+  tint,
 }: {
-  title: string;
+  label: string;
+  value: number;
+  note: string;
   icon: typeof Users;
-  count: number;
-  extra?: string;
-  children: React.ReactNode;
+  tint: string;
 }) {
   return (
-    <div className="bg-white border border-border rounded-2xl overflow-hidden" style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.05)" }}>
-      <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
-        <div className="flex items-center gap-2.5">
-          <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-            <Icon className="size-4" />
-          </div>
-          <h2 className="font-display font-extrabold text-sm">{title}</h2>
-          <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{count}</span>
-        </div>
-        {extra && <span className="font-mono font-bold text-sm text-primary">{extra}</span>}
+    <div className="rounded-[24px] border border-border bg-white p-5 shadow-[0_14px_40px_rgba(15,23,42,0.05)]">
+      <div className={`mb-4 inline-flex size-11 items-center justify-center rounded-2xl ${tint}`}>
+        <Icon className="size-5" />
       </div>
-      <div className="divide-y divide-border max-h-72 overflow-y-auto">{children}</div>
+      <p className="font-display text-4xl font-extrabold tracking-tight">{value}</p>
+      <p className="mt-2 text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{note}</p>
     </div>
   );
 }
 
-function Row({ name, sub, badge }: { name: string; sub?: string; badge?: keyof typeof STATUS_BADGE }) {
+function QuickLinkCard({
+  to,
+  title,
+  value,
+  description,
+  detail,
+  icon: Icon,
+}: {
+  to: string;
+  title: string;
+  value: string;
+  description: string;
+  detail: string;
+  icon: typeof Users;
+}) {
   return (
-    <div className="flex items-center justify-between px-5 py-3">
-      <div className="min-w-0">
-        <p className="text-sm font-semibold truncate">{name}</p>
-        {sub && <p className="text-[11px] text-muted-foreground">{sub}</p>}
+    <Link
+      to={to}
+      className="group rounded-[24px] border border-border bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] p-5 shadow-[0_12px_30px_rgba(15,23,42,0.04)] transition-all hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)]"
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="size-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+          <Icon className="size-5" />
+        </div>
+        <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-1" />
       </div>
-      {badge && (
-        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${STATUS_BADGE[badge]}`}>{badge}</span>
-      )}
-    </div>
+      <div className="mt-6">
+        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary/60">{title}</p>
+        <p className="mt-2 font-display text-3xl font-extrabold tracking-tight">{value}</p>
+        <p className="mt-2 text-sm font-medium text-foreground">{description}</p>
+        <p className="mt-3 text-xs text-muted-foreground">{detail}</p>
+      </div>
+    </Link>
   );
-}
-
-function Empty({ text }: { text: string }) {
-  return <div className="px-5 py-6 text-center text-xs text-muted-foreground">{text}</div>;
 }

@@ -106,7 +106,7 @@ function AuthPage() {
                   required
                   value={empCode}
                   onChange={(e) => setEmpCode(e.target.value)}
-                  placeholder="e.g. EMP-0001"
+                  placeholder="e.g. EMP-K7M4Q9"
                   autoCapitalize="characters"
                   autoComplete="username"
                   className="mt-1.5 w-full h-13 px-4 rounded-2xl bg-muted/60 border border-border focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition text-sm"
