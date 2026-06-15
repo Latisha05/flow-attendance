@@ -60,11 +60,13 @@ export type Employee = {
   id: string;
   emp_code: string;
   password: string;
+  email?: string;
   full_name: string;
   designation: string;
   team: string;
   paid_leave_balance?: number;
   created_at: string;
+  isFirstLogin?: boolean;
 };
 
 export const EXPENSE_CATEGORIES = ["Travel", "Food", "Equipment", "Shoot", "Other"];
@@ -456,6 +458,7 @@ export async function addEmployee(full_name: string, designation: string, team: 
     team: normalizedTeam,
     paid_leave_balance: 1,
     created_at: new Date().toISOString(),
+    isFirstLogin: true,
   };
   db.employees.push(emp);
   write(db);
@@ -508,6 +511,24 @@ export async function deleteDepartment(name: string) {
       : employee,
   );
   write(db);
+  return { ok: true };
+}
+
+export async function updateEmployeeCredentials(employeeId: string, email: string, newPassword: string) {
+  const db = read();
+  const emp = db.employees.find((e) => e.id === employeeId);
+  if (!emp) throw new Error("Employee not found");
+  if (email) emp.email = email.trim().toLowerCase();
+  if (newPassword) emp.password = newPassword;
+  emp.isFirstLogin = false;
+  write(db);
+  return emp;
+}
+
+export async function dismissFirstLogin(employeeId: string) {
+  const db = read();
+  const emp = db.employees.find((e) => e.id === employeeId);
+  if (emp) { emp.isFirstLogin = false; write(db); }
   return { ok: true };
 }
 

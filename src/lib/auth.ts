@@ -11,8 +11,10 @@ export type User = {
   emp_code: string;
   full_name: string;
   display_name?: string;
+  email?: string;
   designation: string;
   team: string;
+  isFirstLogin?: boolean;
 };
 
 const STORAGE_KEY = "flow.auth.user";
@@ -55,7 +57,7 @@ function writeDisplayNames(displayNames: Record<string, string>) {
   localStorage.setItem(DISPLAY_NAME_KEY, JSON.stringify(displayNames));
 }
 
-import { findEmployeeByCredentials } from "./store";
+import { findEmployeeByCredentials, updateEmployeeCredentials, dismissFirstLogin } from "./store";
 
 /**
  * Log in with an admin-issued Employee ID + password.
@@ -70,8 +72,10 @@ export async function signIn(empCode: string, password: string): Promise<User> {
     emp_code: emp.emp_code,
     full_name: emp.full_name,
     display_name: displayNames[emp.id] ?? "",
+    email: emp.email ?? "",
     designation: emp.designation,
     team: emp.team,
+    isFirstLogin: emp.isFirstLogin ?? false,
   };
   persist(user);
   return user;
@@ -93,6 +97,23 @@ export function updateDisplayName(displayName: string) {
   };
   persist(nextUser);
   return nextUser;
+}
+
+export async function setupCredentials(email: string, newPassword: string) {
+  const current = getCurrentUser();
+  if (!current) throw new Error("You need to sign in again");
+  const emp = await updateEmployeeCredentials(current.id, email, newPassword);
+  const nextUser: User = { ...current, email: emp.email ?? email, isFirstLogin: false };
+  persist(nextUser);
+  return emp;
+}
+
+export async function skipFirstLoginSetup() {
+  const current = getCurrentUser();
+  if (!current) throw new Error("You need to sign in again");
+  await dismissFirstLogin(current.id);
+  const nextUser: User = { ...current, isFirstLogin: false };
+  persist(nextUser);
 }
 
 export function signOut() {

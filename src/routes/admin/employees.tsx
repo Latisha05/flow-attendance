@@ -106,13 +106,14 @@ function EmployeesPage() {
         style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}
       >
         {/* Table header */}
-        <div className="hidden md:grid grid-cols-[48px_120px_1fr_1fr_120px_140px_56px] gap-4 px-5 py-3 border-b-2 border-primary/10 text-[11px] font-bold uppercase tracking-wider text-muted-foreground bg-muted/30">
+        <div className="hidden md:grid grid-cols-[48px_120px_1fr_1fr_120px_140px_160px_56px] gap-4 px-5 py-3 border-b-2 border-primary/10 text-[11px] font-bold uppercase tracking-wider text-muted-foreground bg-muted/30">
           <span />
           <span>Employee ID</span>
           <span>Name</span>
           <span>Designation</span>
           <span>Department</span>
           <span>Password</span>
+          <span>Email</span>
           <span className="text-right">Actions</span>
         </div>
 
@@ -139,7 +140,7 @@ function EmployeesPage() {
           {filtered.map((e) => (
             <div
               key={e.id}
-              className="employee-row grid md:grid-cols-[48px_120px_1fr_1fr_120px_140px_56px] gap-3 md:gap-4 px-5 py-3.5 border-b border-border last:border-0 items-center hover:bg-primary/[0.025] transition-colors"
+              className="employee-row grid md:grid-cols-[48px_120px_1fr_1fr_120px_140px_160px_56px] gap-3 md:gap-4 px-5 py-3.5 border-b border-border last:border-0 items-center hover:bg-primary/[0.025] transition-colors"
             >
               {/* Avatar */}
               <div
@@ -183,6 +184,18 @@ function EmployeesPage() {
 
               {/* Password (hidden, reveal on eye) */}
               <PasswordCell password={e.password} />
+
+              {/* Email / setup status */}
+              <div className="text-xs truncate">
+                {e.email ? (
+                  <span className="text-muted-foreground">{e.email}</span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-amber-600 font-semibold bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                    <span className="size-1.5 rounded-full bg-amber-500 inline-block" />
+                    Setup pending
+                  </span>
+                )}
+              </div>
 
               {/* Delete */}
               <div className="flex justify-end">

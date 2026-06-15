@@ -2,8 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
-import { LogOut, Briefcase, Users, Hash, Pencil, Check } from "lucide-react";
-import { useAuth, signOut as authSignOut, updateDisplayName } from "@/lib/auth";
+import { LogOut, Briefcase, Users, Hash, Pencil, Check, Mail, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { useAuth, signOut as authSignOut, updateDisplayName, setupCredentials } from "@/lib/auth";
 import { gsap } from "gsap";
 import { toast } from "sonner";
 
@@ -65,6 +65,8 @@ function ProfilePage() {
     }
   }
 
+  const needsSetup = !user?.email;
+
   return (
     <div className="px-6 pt-12 pb-24">
       <h1 className="font-display text-3xl font-extrabold mb-8">Profile</h1>
@@ -94,8 +96,25 @@ function ProfilePage() {
         </span>
       </div>
 
+      {/* Setup prompt banner */}
+      {needsSetup && (
+        <div
+          className="mb-4 flex items-start gap-3 px-4 py-3.5 rounded-2xl bg-amber-50 border border-amber-200"
+          style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}
+        >
+          <div className="size-9 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+            <ShieldCheck className="size-4" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] uppercase font-bold text-amber-700 tracking-wider">Account setup pending</p>
+            <p className="text-xs text-amber-700 mt-0.5">Set up your email and password to secure your account.</p>
+          </div>
+        </div>
+      )}
+
       {/* Info cards */}
       <div ref={infoRef} className="space-y-2 mb-6">
+        {/* Display name */}
         <div
           className="px-4 py-3.5 rounded-2xl bg-white border border-border"
           style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}
@@ -129,6 +148,9 @@ function ProfilePage() {
             </div>
           </div>
         </div>
+
+        {/* Email / credentials setup */}
+        <CredentialsCard email={user?.email} userId={user?.id} />
 
         <div
           className="flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-white border border-border"
@@ -183,6 +205,133 @@ function ProfilePage() {
       <p className="text-center text-[10px] text-muted-foreground mt-8 font-mono">
         <span className="text-primary">●</span> Punch · v1.0
       </p>
+    </div>
+  );
+}
+
+function CredentialsCard({ email, userId }: { email?: string; userId?: string }) {
+  const [open, setOpen] = useState(false);
+  const [newEmail, setNewEmail] = useState(email ?? "");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  if (!userId) return null;
+
+  async function save(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (newPassword && newPassword !== confirm) { toast.error("Passwords do not match"); return; }
+    if (newPassword && newPassword.length < 6) { toast.error("Password must be at least 6 characters"); return; }
+    if (!newEmail.trim() && !newPassword) { toast.error("Enter an email or new password"); return; }
+    setLoading(true);
+    try {
+      await setupCredentials(newEmail, newPassword);
+      toast.success("Credentials updated");
+      setOpen(false);
+      setNewPassword("");
+      setConfirm("");
+    } catch (err: any) {
+      toast.error(err.message ?? "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div
+      className="px-4 py-3.5 rounded-2xl bg-white border border-border"
+      style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}
+    >
+      <div className="flex items-start gap-3">
+        <div className={`size-9 rounded-xl flex items-center justify-center shrink-0 ${email ? "bg-primary/10 text-primary" : "bg-amber-100 text-amber-600"}`}>
+          <Mail className="size-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Email &amp; Password</p>
+              <p className="text-sm font-semibold mt-0.5 truncate">
+                {email ? email : <span className="text-amber-600 text-xs font-semibold">Not set up yet</span>}
+              </p>
+            </div>
+            <button
+              onClick={() => { setOpen((o) => !o); setNewEmail(email ?? ""); setNewPassword(""); setConfirm(""); }}
+              className="size-9 rounded-xl border border-border flex items-center justify-center text-primary hover:bg-primary/5 transition-colors shrink-0"
+              title={email ? "Update credentials" : "Set up credentials"}
+            >
+              <Pencil className="size-4" />
+            </button>
+          </div>
+
+          {open && (
+            <form onSubmit={save} className="mt-3 space-y-3">
+              <input
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="your@email.com"
+                autoComplete="email"
+                className="w-full h-11 px-3 rounded-2xl bg-muted/60 border border-border focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition text-sm"
+              />
+              <div className="relative">
+                <input
+                  type={showPw ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="New password"
+                  autoComplete="new-password"
+                  className="w-full h-11 px-3 pr-10 rounded-2xl bg-muted/60 border border-border focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw((s) => !s)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  tabIndex={-1}
+                >
+                  {showPw ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              </div>
+              <div className="relative">
+                <input
+                  type={showConfirm ? "text" : "password"}
+                  value={confirm}
+                  onChange={(e) => setConfirm(e.target.value)}
+                  placeholder="Confirm password"
+                  autoComplete="new-password"
+                  className="w-full h-11 px-3 pr-10 rounded-2xl bg-muted/60 border border-border focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm((s) => !s)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  tabIndex={-1}
+                >
+                  {showConfirm ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="flex-1 h-10 rounded-2xl border border-border text-sm font-semibold hover:bg-muted transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-1 h-10 rounded-2xl text-white text-sm font-semibold disabled:opacity-50 transition-opacity"
+                  style={{ background: "linear-gradient(135deg, hsl(243 75% 59%), hsl(258 80% 68%))" }}
+                >
+                  {loading ? "Saving…" : "Save"}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
